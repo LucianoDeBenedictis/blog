@@ -3,20 +3,23 @@ project:
   output-dir: docs
 
 website:
-  title: "blog"
+  title: "Luciano's blog"
   navbar:
     right:
+      - index.qmd
       - about.qmd
       - icon: github
-        href: https://github.com/
-      - icon: twitter
-        href: https://twitter.com
+        href: https://github.com/LucianoDeBenedictis/blog
+      - text: Electronics
+        href: https://bentfishbowl.wixsite.com/electronics
+        
 format:
   html:
     theme:
       - cosmo
       - brand
     css: styles.css
+    toc: true
 
 
 
