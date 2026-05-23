@@ -46,7 +46,6 @@ po/*~
 rsconnect/
 .Rproj.user
 
-# miei
-/_freeze/
+# additionally
 /.quarto/
 **/*.quarto_ipynb
