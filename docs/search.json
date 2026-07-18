@@ -9,7 +9,7 @@
   {
     "objectID": "index.html",
     "href": "index.html",
-    "title": "blog",
+    "title": "Home",
     "section": "",
     "text": "Home page!\n\n\n\n\n\n\n\n\nNo matching items"
   },
@@ -18,7 +18,7 @@
     "href": "about.html",
     "title": "About",
     "section": "",
-    "text": "About this blog"
+    "text": "Hi! I’m Luciano. Currently, I’m a PhD student at the University of Camerino, working on a thesis on plant traits and functional diversity at small scales. My interests are ecology, statistics and software, in particular trait-based ecology, Bayesian models, causal inference, and R.\nThis blog is an outlet for helpful ideas and discussions that might come up during my work or while reading, and don’t quite fit into conventional academic outlets. Sometimes maybe they do, but tucked away in some corner because not everyone is a curious nerd.\nIf you’re interested in my research, here’s a full bibliography!\n\nAs main author\n\nLegnaro Diamanti, M., Cangelmi, G., De Benedictis, L. L. M., Balducci, L., Benesperi, R., Bianchi, E., Carli, E., Ceci, A., Chianucci, F., Ciaschetti, G., De Simone, L., De Toma, A., Di Pietro, F., Fanfarillo, E., Fiaschi, T., Francioni, M., Girometta, C. E., Leonardi, M., Loppi, S., … Burrascano, S. (2026). Forest structure and multi-taxonomic diversity in Apennine beech forests subjected to conservation-oriented interventions. Plant Biosystems, 160(4), 224. https://doi.org/10.1007/s44473-026-00238-x\nCervellini, M., Benedictis, L. L. M. D., Salvatori, L., Chelli, S., Campetella, G., Selvi, F., Iacopetti, G., Ferrara, A., Chiarucci, A., Canini, A., Francioni, M., Scalet, C., & Canullo, R. (2026). Training and intercalibration reduce observer-induced variability in forest vegetation surveys. Vegetation Ecology and Diversity, 63, e189819. https://doi.org/10.3897/ved.189819\nDe Benedictis, L. L. M., Chelli, S., Zhu, Z., Cervellini, M., Canullo, R., Chianucci, F., Puletti, N., Tsakalos, J. L., Bartha, S., & Campetella, G. (2026). Forest structure and understory functional diversity at multiple scales: The importance of median tree height. Ecological Indicators, 183, 114687. https://doi.org/10.1016/j.ecolind.2026.114687\nDe Benedictis, L. L. M., Chelli, S., Canullo, R., & Campetella, G. (2025). Measuring Them all: Individual-Based Functional Spatial Patterns in Mountain Grasslands. Journal of Vegetation Science, 36(2), e70029. https://doi.org/10.1111/jvs.70029\n\n\n\nAs co-author\n\nCooper, N. & the BES Data and Code Hackathon Group. (2026). Data- and code-archiving in the British Ecological Society journals: Present status and recommendations for future improvements. Methods in Ecology and Evolution, 17(7), 1954–1966. https://doi.org/10.1111/2041-210x.70338\nZhu, Z., Pal, R. W., Chelli, S., Cervellini, M., Canullo, R., De Benedictis, L. L. M., Cox, A., Añazco, A. R., Bartha, S., & Campetella, G. (2026). From ashes to old-growth forests: How do long-term changes in forest structure affect understory plant diversity after wildfires in Yellowstone National Park? Forest Ecology and Management, 602, 123419. https://doi.org/10.1016/j.foreco.2025.123419\nZhu, Z., Chelli, S., Tsakalos, J. L., Bricca, A., Canullo, R., Cervellini, M., Pennesi, R., De Benedictis, L. L. M., Cesaroni, V., Bottacci, A., & Campetella, G. (2025). How effective are different protection strategies in promoting the plant diversity of temperate forests in national parks? Forest Ecology and Management, 584, 122602. https://doi.org/10.1016/j.foreco.2025.122602\nCervellini, M., Salvatori, L., Chelli, S., Tardella, F. M., Chiarucci, A., Tsakalos, J. L., Campetella, G., Francioni, M., De Benedictis, L. L. M., & Canullo, R. (2025). Long-term monitoring of plant diversity data in the “Montagna di Torricchio” Strict Nature Reserve, Italy. Data in Brief, 59, 111355. https://doi.org/10.1016/j.dib.2025.111355\nChelli, S., Tsakalos, J. L., Zhu, Z., De Benedictis, L. L. M., Bartha, S., Canullo, R., Borsukevych, L., Cervellini, M., & Campetella, G. (2024). The diversity of within-community plant species combinations: A new tool for assessing changes in forests and guiding protection actions. Ecological Indicators, 163, 112089. https://doi.org/10.1016/j.ecolind.2024.112089"
   },
   {
     "objectID": "posts/post-with-code/index.html",
@@ -26,5 +26,12 @@
     "title": "Post With Code",
     "section": "",
     "text": "This is a post with executable code.\n\n1 + 1\n\n[1] 2"
+  },
+  {
+    "objectID": "resources.html",
+    "href": "resources.html",
+    "title": "Resources",
+    "section": "",
+    "text": "Blogs\n\nThe 100% CI\nStatistical Modeling, Causal Inference, and Social Science\nSolomon Kurz. Be sure to check out the book translations as well!\n\n\n\nBooks\n\nStatistical Rethinking, 2nd ed., such a great book to learn more about statistical models and Bayes, or even just to refine one’s scientific approach. Calling it a methods book is reductive, calling it a science book is too vague. The writing is captivating, the approach is innovative. A convincing synthesis of Bayesian models and causality that has won me over\nNumerical Ecology, 3rd ed., a bit old fashioned, and I think there’s a bit too much focus on testing and significance, but still a staple collection of the fundamental numerical methods in ecology"
   }
 ]
