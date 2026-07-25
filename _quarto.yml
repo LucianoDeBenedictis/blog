@@ -7,21 +7,28 @@ execute:
 
 website:
   title: "Luciano's blog"
+  site-url: "https://lucianodebenedictis.github.io/blog/"
+  description: "Desktop ecology"
   navbar:
+    background: primary
     right:
       - index.qmd
       - resources.qmd
       - about.qmd
-      - icon: github
-        href: https://github.com/LucianoDeBenedictis/blog
       - text: Electronics
         href: https://bentfishbowl.wixsite.com/electronics
+      - icon: rss
+        href: index.xml
+      - icon: github
+        href: https://github.com/LucianoDeBenedictis/blog
+  repo-url: https://github.com/LucianoDeBenedictis/blog
+  repo-actions: [edit, source, issue]
         
 format:
   html:
     theme:
-      - cosmo
-      - brand
+      light: flatly
+      dark: darkly
     css: styles.css
     toc: true
 

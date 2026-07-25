@@ -3,9 +3,11 @@ title: "About"
 about:
   template: jolla
   links:
-    - text: Scholar
+    - icon: journal-text
+      text: Scholar
       href: https://scholar.google.com/citations?user=YdmDsZMAAAAJ&hl
-    - text: ORCiD
+    - icon: person-circle
+      text: ORCiD
       href: https://orcid.org/0009-0001-5014-4526
     - icon: github
       text: Github
