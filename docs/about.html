@@ -76,6 +76,9 @@ ul.task-list li input[type="checkbox"] {
 
 
 <link rel="stylesheet" href="styles.css">
+<meta property="og:title" content="About – Luciano’s blog">
+<meta property="og:description" content="Desktop ecology">
+<meta property="og:site_name" content="Luciano’s blog">
 </head>
 
 <body class="nav-fixed fullcontent quarto-light"><script id="quarto-html-before-body" type="application/javascript">
@@ -297,6 +300,12 @@ ul.task-list li input[type="checkbox"] {
 <!-- margin-sidebar -->
     
 <!-- main -->
+<main class="content" id="quarto-document-content">
+
+
+
+
+
 <div class="quarto-about-jolla">
  <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
@@ -304,10 +313,27 @@ ul.task-list li input[type="checkbox"] {
 </div>
 <div class="quarto-title-meta">
   </div>
-</header><main class="content" id="quarto-document-content">
-
+</header><div id="hero-heading">
 <p>Hi! I’m Luciano. Currently, I’m a PhD student at the University of Camerino, working on a thesis on plant traits and functional diversity at small scales. My interests are ecology, statistics and software, in particular trait-based ecology, Bayesian models, causal inference, and R.</p>
 <p>This blog is an outlet for helpful ideas, technical aspects, and discussions that might come up during my work or while reading, and don’t quite fit into conventional academic outlets. Sometimes maybe they do, but tucked away in some corner because not everyone is a curious nerd.</p>
+</div> 
+  <hr class="about-sep">
+   <div class="about-links">
+  <a href="https://scholar.google.com/citations?user=YdmDsZMAAAAJ&amp;hl" class="about-link" rel="" target="">
+    <i class="bi bi-journal-text"></i>
+     <span class="about-link-text">Scholar</span>
+  </a>
+  <a href="https://orcid.org/0009-0001-5014-4526" class="about-link" rel="" target="">
+    <i class="bi bi-person-circle"></i>
+     <span class="about-link-text">ORCiD</span>
+  </a>
+  <a href="https://github.com/LucianoDeBenedictis" class="about-link" rel="" target="">
+    <i class="bi bi-github"></i>
+     <span class="about-link-text">Github</span>
+  </a>
+</div>
+</div>
+
 <p>If you’re interested in my research, here’s a full bibliography!</p>
 <section id="as-main-author" class="level4">
 <h4 data-anchor-id="as-main-author">As main author</h4>
@@ -329,25 +355,10 @@ ul.task-list li input[type="checkbox"] {
 </ul>
 
 
+
 </section>
-</main> 
-  <hr class="about-sep">
-   <div class="about-links">
-  <a href="https://scholar.google.com/citations?user=YdmDsZMAAAAJ&amp;hl" class="about-link" rel="" target="">
-    <i class="bi bi-journal-text"></i>
-     <span class="about-link-text">Scholar</span>
-  </a>
-  <a href="https://orcid.org/0009-0001-5014-4526" class="about-link" rel="" target="">
-    <i class="bi bi-person-circle"></i>
-     <span class="about-link-text">ORCiD</span>
-  </a>
-  <a href="https://github.com/LucianoDeBenedictis" class="about-link" rel="" target="">
-    <i class="bi bi-github"></i>
-     <span class="about-link-text">Github</span>
-  </a>
-</div>
-</div>
- <!-- /main -->
+
+</main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
     // Ensure there is a toggle, if there isn't float one in the top right
@@ -754,6 +765,38 @@ ul.task-list li input[type="checkbox"] {
     }
   });
   </script>
+<input type="hidden" id="giscus-base-theme" value="preferred_color_scheme">
+<input type="hidden" id="giscus-alt-theme" value="preferred_color_scheme">
+<script>
+  function loadGiscus() {
+    // Function to get the theme based on body class
+    const getTheme = () => {
+      let baseTheme = document.getElementById('giscus-base-theme').value;
+      let altTheme = document.getElementById('giscus-alt-theme').value;
+      if (authorPrefersDark) {
+          [baseTheme, altTheme] = [altTheme, baseTheme];
+      }
+      return document.body.classList.contains('quarto-dark') ? altTheme : baseTheme;
+    };
+    const script = document.createElement("script");
+    script.src = "https://giscus.app/client.js";
+    script.async = true;
+    script.dataset.repo = "LucianoDeBenedictis/blog";
+    script.dataset.repoId = "R_kgDOQ9cC-w";
+    script.dataset.category = "Announcements";
+    script.dataset.categoryId = "DIC_kwDOQ9cC-84DCkDj";
+    script.dataset.mapping = "pathname";
+    script.dataset.reactionsEnabled = "1";
+    script.dataset.emitMetadata = "0";
+    script.dataset.inputPosition = "top";
+    script.dataset.theme = getTheme();
+    script.dataset.lang = "en";
+    script.crossOrigin = "anonymous";
+    // Append the script to the desired div instead of at the end of the body
+    document.getElementById("quarto-content").appendChild(script);
+  }
+  loadGiscus();
+</script>
 </div> <!-- /content -->
 
 

@@ -5,11 +5,13 @@ listing:
   feed: true
   sort: "date desc"
   type: default
-  categories: true
-  sort-ui: false
-  filter-ui: false
+  categories: cloud
+  sort-ui: [title, date]
+  filter-ui: true
 page-layout: full
 title-block-banner: true
+execute: 
+  freeze: false
 ---
 
 Welcome to my blog about ecology, stats and R things. You can find the most recent posts below.

@@ -2,7 +2,7 @@
 title: "Resources"
 ---
 
-### Blogs
+### Blogs and personal sites
 
 - [The 100% CI](https://www.the100.ci/)
 
@@ -10,8 +10,18 @@ title: "Resources"
 
 - [Solomon Kurz](https://solomonkurz.netlify.app/blog/). Be sure to check out the [book translations as well](https://solomonkurz.netlify.app/book/)!
 
+- [Cecilia Baldoni](https://cecibaldoni.github.io/), who helped me start this blog and has the most beautiful Quarto website
+
+- [Ruben Arslan](https://rubenarslan.github.io/blog.html)
+
+- [Andrew Heiss](https://www.andrewheiss.com/blog/)
+
 ### Books
 
 - [Statistical Rethinking, 2nd ed.](https://xcelab.net/rm/), such a great book to learn more about statistical models and Bayes, or even just to refine one's scientific approach. Calling it a methods book is reductive, calling it a science book is too vague. The writing is captivating, the approach is innovative. A convincing synthesis of Bayesian models and causality that has won me over
 
 - [Numerical Ecology, 3rd ed.](https://shop.elsevier.com/books/numerical-ecology/legendre/978-0-444-53868-0), a bit old fashioned, and I think there's a bit too much focus on testing and significance, but still a staple collection of the fundamental numerical methods in ecology
+
+### Others
+
+- [SORTEE](https://sortee.org/)

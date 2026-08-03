@@ -77,6 +77,8 @@ ul.task-list li input[type="checkbox"] {
 
 
 <link rel="stylesheet" href="styles.css">
+<meta property="og:title" content="Resources – Luciano’s blog">
+<meta property="og:site_name" content="Luciano’s blog">
 </head>
 
 <body class="nav-fixed quarto-light"><script id="quarto-html-before-body" type="application/javascript">
@@ -301,8 +303,9 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#blogs" id="toc-blogs" class="nav-link active" data-scroll-target="#blogs">Blogs</a></li>
+  <li><a href="#blogs-and-personal-sites" id="toc-blogs-and-personal-sites" class="nav-link active" data-scroll-target="#blogs-and-personal-sites">Blogs and personal sites</a></li>
   <li><a href="#books" id="toc-books" class="nav-link" data-scroll-target="#books">Books</a></li>
+  <li><a href="#others" id="toc-others" class="nav-link" data-scroll-target="#others">Others</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/LucianoDeBenedictis/blog/edit/main/resources.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/LucianoDeBenedictis/blog/blob/main/resources.qmd" class="toc-action"><i class="bi empty"></i>View source</a></li><li><a href="https://github.com/LucianoDeBenedictis/blog/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
     </div>
@@ -329,12 +332,15 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<section id="blogs" class="level3">
-<h3 class="anchored" data-anchor-id="blogs">Blogs</h3>
+<section id="blogs-and-personal-sites" class="level3">
+<h3 class="anchored" data-anchor-id="blogs-and-personal-sites">Blogs and personal sites</h3>
 <ul>
 <li><p><a href="https://www.the100.ci/">The 100% CI</a></p></li>
 <li><p><a href="https://statmodeling.stat.columbia.edu/">Statistical Modeling, Causal Inference, and Social Science</a></p></li>
 <li><p><a href="https://solomonkurz.netlify.app/blog/">Solomon Kurz</a>. Be sure to check out the <a href="https://solomonkurz.netlify.app/book/">book translations as well</a>!</p></li>
+<li><p><a href="https://cecibaldoni.github.io/">Cecilia Baldoni</a>, who helped me start this blog and has the most beautiful Quarto website</p></li>
+<li><p><a href="https://rubenarslan.github.io/blog.html">Ruben Arslan</a></p></li>
+<li><p><a href="https://www.andrewheiss.com/blog/">Andrew Heiss</a></p></li>
 </ul>
 </section>
 <section id="books" class="level3">
@@ -342,6 +348,12 @@ ul.task-list li input[type="checkbox"] {
 <ul>
 <li><p><a href="https://xcelab.net/rm/">Statistical Rethinking, 2nd ed.</a>, such a great book to learn more about statistical models and Bayes, or even just to refine one’s scientific approach. Calling it a methods book is reductive, calling it a science book is too vague. The writing is captivating, the approach is innovative. A convincing synthesis of Bayesian models and causality that has won me over</p></li>
 <li><p><a href="https://shop.elsevier.com/books/numerical-ecology/legendre/978-0-444-53868-0">Numerical Ecology, 3rd ed.</a>, a bit old fashioned, and I think there’s a bit too much focus on testing and significance, but still a staple collection of the fundamental numerical methods in ecology</p></li>
+</ul>
+</section>
+<section id="others" class="level3">
+<h3 class="anchored" data-anchor-id="others">Others</h3>
+<ul>
+<li><a href="https://sortee.org/">SORTEE</a></li>
 </ul>
 
 
@@ -761,6 +773,38 @@ ul.task-list li input[type="checkbox"] {
     }
   });
   </script>
+<input type="hidden" id="giscus-base-theme" value="preferred_color_scheme">
+<input type="hidden" id="giscus-alt-theme" value="preferred_color_scheme">
+<script>
+  function loadGiscus() {
+    // Function to get the theme based on body class
+    const getTheme = () => {
+      let baseTheme = document.getElementById('giscus-base-theme').value;
+      let altTheme = document.getElementById('giscus-alt-theme').value;
+      if (authorPrefersDark) {
+          [baseTheme, altTheme] = [altTheme, baseTheme];
+      }
+      return document.body.classList.contains('quarto-dark') ? altTheme : baseTheme;
+    };
+    const script = document.createElement("script");
+    script.src = "https://giscus.app/client.js";
+    script.async = true;
+    script.dataset.repo = "LucianoDeBenedictis/blog";
+    script.dataset.repoId = "R_kgDOQ9cC-w";
+    script.dataset.category = "Announcements";
+    script.dataset.categoryId = "DIC_kwDOQ9cC-84DCkDj";
+    script.dataset.mapping = "pathname";
+    script.dataset.reactionsEnabled = "1";
+    script.dataset.emitMetadata = "0";
+    script.dataset.inputPosition = "top";
+    script.dataset.theme = getTheme();
+    script.dataset.lang = "en";
+    script.crossOrigin = "anonymous";
+    // Append the script to the desired div instead of at the end of the body
+    document.getElementById("quarto-content").appendChild(script);
+  }
+  loadGiscus();
+</script>
 </div> <!-- /content -->
 
 
