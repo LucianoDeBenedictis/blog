@@ -24,18 +24,7 @@ website:
   repo-url: https://github.com/LucianoDeBenedictis/blog
   repo-actions: [edit, source, issue]
   open-graph: true
-  comments: 
-    giscus: 
-      repo: LucianoDeBenedictis/blog
-      repo-id: R_kgDOQ9cC-w
-      category: Announcements
-      category-id: DIC_kwDOQ9cC-84DCkDj
-      mapping: pathname
-      reactions-enabled: true
-      input-position: top
-      theme: preferred_color_scheme
-      loading: lazy
-        
+
 format:
   html:
     theme:
