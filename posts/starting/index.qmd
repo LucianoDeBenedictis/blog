@@ -3,5 +3,12 @@ title: "Starting a blog!"
 format: html
 ---
 
-Scientific papers are great and all, being the agreed upon way to make science at the moment, but they can’t be the only outlet for scientific debate. For one thing, post-publication discussion is often severely lacking (or post-publication peer review, if you want to make a big deal of it). Sure, some people might talk about it at a conference, and nobody else will know; or make an off-handed comment while referencing it, with the readers of the original paper none the wiser; response articles exist, but you don’t want to go through peer review unless it’s something really big, and it seems more of a way to get into an academic fight than anything. 
-I’m not ashamed to say that I have learnt more from some posts on blogs such as those in [resources](/resources.qmd). Inspired by those and others, I decided to start a blog, in the hope of doing a bit of the same myself. I will share some ideas that I think are useful, without having to be so formal, and with the possibility for anyone involved to have a discussion in real time, as allowed by the internet.
+Scientific debate currently revolves around papers, being the agreed upon way to make science, but they can’t be the only outlet for scholarly discussion. Post-publication review is still mostly theory, and post-publication is often severely lacking. Response articles exist, but usually you don’t want to go through months of peer review unless it’s something really big, and it seems more of a way to get into an academic fight than anything at times.
+
+So, what do we have? Conferences are one option, but they involve a restricted number of people at one specific time. Mostly, the discussion of published material involves some off-handed comments while referencing it, lost in the body of a text. And then there's the blog, this old-fashioned way to use the internet.
+
+I’m not ashamed to say that I have learnt more from some posts on blogs such as those in [resources](/resources.qmd) than from some papers. Inspired by those and others, I decided to start a blog, in the hope of doing a bit of the same myself. Posts could be small ideas, or just practical examples. Some of the latter come from my own work, where they might have been small technicalities, shadowed by the bigger goal and message, which could be of broader interest despite their simplicity.
+
+I have focused a lot on discussion, and surely there is the possibility of real-time discussion, as allowed by the internet, but I also intend this in the broader terms: publishing something for people to read and benefit from is already part of a discussion. So, I'm happy to write about what I like to do in a less formal way, and you're welcome to just read the incoming posts, maybe benefit from them or even acknowledge the help!
+
+Have a nice stay here.
