@@ -1,5 +1,6 @@
 ---
 title: "Starting a blog!"
+date: 2026-08-03
 format: html
 ---
 

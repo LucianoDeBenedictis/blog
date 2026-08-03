@@ -10,7 +10,7 @@
 <atom:link href="https://lucianodebenedictis.github.io/blog/index.xml" rel="self" type="application/rss+xml"/>
 <description>Desktop ecology</description>
 <generator>quarto-1.9.38</generator>
-<lastBuildDate>Mon, 03 Aug 2026 10:03:11 GMT</lastBuildDate>
+<lastBuildDate>Sun, 02 Aug 2026 22:00:00 GMT</lastBuildDate>
 <item>
   <title>Starting a blog!</title>
   <dc:creator>Luciano L.M. De Benedictis</dc:creator>
@@ -32,7 +32,7 @@
 
  ]]></description>
   <guid>https://lucianodebenedictis.github.io/blog/posts/starting/</guid>
-  <pubDate>Mon, 03 Aug 2026 10:03:11 GMT</pubDate>
+  <pubDate>Sun, 02 Aug 2026 22:00:00 GMT</pubDate>
 </item>
 </channel>
 </rss>
