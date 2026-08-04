@@ -2,6 +2,8 @@
 title: "Home"
 listing:
   contents: posts
+  fields: [image, date, title, subtitle, description, author, reading-time]
+  image-align: left
   feed: true
   sort: "date desc"
   type: default
