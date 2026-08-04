@@ -8,7 +8,7 @@
 <title>Luciano&#39;s blog</title>
 <link>https://lucianodebenedictis.github.io/blog/</link>
 <atom:link href="https://lucianodebenedictis.github.io/blog/index.xml" rel="self" type="application/rss+xml"/>
-<description>Desktop ecology</description>
+<description></description>
 <generator>quarto-1.9.38</generator>
 <lastBuildDate>Mon, 03 Aug 2026 22:00:00 GMT</lastBuildDate>
 <item>
@@ -23,7 +23,7 @@
 
 
 <blockquote class="blockquote">
-<p>My experience with astronomy and astrophysics boils down to teenage curiosity. The main purpose of this example is as an exercise in <code>brms</code> nonlinear syntax. There are probably many tiny errors and things that could be done better.</p>
+<p>My experience with astronomy and astrophysics boils down to teenage curiosity. The main purpose of this example is as an exercise in <code>brms</code> nonlinear syntax. There are probably many tiny errors and things that could be done better. The way the variables are used doesn’t have to reflect <a href="https://www.youtube.com/watch?v=YdOXS_9_P4U">the order in which they were inferred</a>, it’s purely a statistical exercise. A more realistic story would be to <a href="https://www.scienceabc.com/nature/universe/how-a-planet-is-weighed">weigh things on Earth</a> and then use the inferred gravitational constant to find out the mass of astronomical bodies.</p>
 </blockquote>
 <section id="what" class="level2">
 <h2 class="anchored" data-anchor-id="what">What?</h2>
@@ -462,14 +462,14 @@ background-color: null;
 font-style: inherit;">#convert sideral orbit to seconds</span></span>
 <span id="cb2-63">    <span class="co" style="color: #5E5E5E;
 background-color: null;
-font-style: inherit;">#to be fancy, use a more accurate sideral day</span></span>
+font-style: inherit;">#assuming these are conventional days, not sideral seems to be the right call</span></span>
 <span id="cb2-64">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">T =</span> sideralOrbit <span class="sc" style="color: #5E5E5E;
 background-color: null;
-font-style: inherit;">*</span> <span class="fl" style="color: #AD0000;
+font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
 background-color: null;
-font-style: inherit;">23.9344696</span> <span class="sc" style="color: #5E5E5E;
+font-style: inherit;">24</span> <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
 background-color: null;
@@ -526,7 +526,7 @@ font-style: inherit;">head</span>(data)</span></code></pre></div></div>
 <td style="text-align: right;">5.97237e+24</td>
 <td style="text-align: right;">6.045830e+24</td>
 <td style="text-align: right;">384400000</td>
-<td style="text-align: right;">2354149.43</td>
+<td style="text-align: right;">2360594.88</td>
 <td style="text-align: right;">3.141593</td>
 </tr>
 <tr class="even">
@@ -539,7 +539,7 @@ font-style: inherit;">head</span>(data)</span></code></pre></div></div>
 <td style="text-align: right;">6.41712e+23</td>
 <td style="text-align: right;">6.417120e+23</td>
 <td style="text-align: right;">9378000</td>
-<td style="text-align: right;">27478.59</td>
+<td style="text-align: right;">27553.82</td>
 <td style="text-align: right;">3.141593</td>
 </tr>
 <tr class="odd">
@@ -552,7 +552,7 @@ font-style: inherit;">head</span>(data)</span></code></pre></div></div>
 <td style="text-align: right;">6.41712e+23</td>
 <td style="text-align: right;">6.417120e+23</td>
 <td style="text-align: right;">23459000</td>
-<td style="text-align: right;">108776.99</td>
+<td style="text-align: right;">109074.82</td>
 <td style="text-align: right;">3.141593</td>
 </tr>
 <tr class="even">
@@ -565,7 +565,7 @@ font-style: inherit;">head</span>(data)</span></code></pre></div></div>
 <td style="text-align: right;">1.89819e+27</td>
 <td style="text-align: right;">1.898279e+27</td>
 <td style="text-align: right;">421800000</td>
-<td style="text-align: right;">152436.34</td>
+<td style="text-align: right;">152853.70</td>
 <td style="text-align: right;">3.141593</td>
 </tr>
 <tr class="odd">
@@ -578,7 +578,7 @@ font-style: inherit;">head</span>(data)</span></code></pre></div></div>
 <td style="text-align: right;">1.89819e+27</td>
 <td style="text-align: right;">1.898238e+27</td>
 <td style="text-align: right;">671100000</td>
-<td style="text-align: right;">305984.20</td>
+<td style="text-align: right;">306821.95</td>
 <td style="text-align: right;">3.141593</td>
 </tr>
 <tr class="even">
@@ -591,7 +591,7 @@ font-style: inherit;">head</span>(data)</span></code></pre></div></div>
 <td style="text-align: right;">1.89819e+27</td>
 <td style="text-align: right;">1.898338e+27</td>
 <td style="text-align: right;">1070400000</td>
-<td style="text-align: right;">616465.29</td>
+<td style="text-align: right;">618153.12</td>
 <td style="text-align: right;">3.141593</td>
 </tr>
 </tbody>
@@ -766,11 +766,11 @@ Formula: log10(M) ~ -logG + log10(4 * pi^2) + 3 * log10(a) - 2 * log10(T)
 
 Regression Coefficients:
                Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-logG_Intercept   -10.17      0.00   -10.18   -10.17 1.00     4439     2707
+logG_Intercept   -10.18      0.00   -10.18   -10.17 1.00     4166     2866
 
 Further Distributional Parameters:
       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-sigma     0.03      0.00     0.02     0.03 1.00     1428     1808
+sigma     0.03      0.00     0.02     0.03 1.00     1447     1820
 
 Draws were sampled using sample(hmc). For each parameter, Bulk_ESS
 and Tail_ESS are effective sample size measures, and Rhat is the potential
@@ -843,7 +843,7 @@ font-style: inherit;">print</span>()</span></code></pre></div></div>
 <pre><code># A tibble: 1 × 7
             G      .lower      .upper .width .point .interval rel_uncertainty
         &lt;dbl&gt;       &lt;dbl&gt;       &lt;dbl&gt;  &lt;dbl&gt; &lt;chr&gt;  &lt;chr&gt;               &lt;dbl&gt;
-1 6.70392e-11 6.64423e-11 6.76320e-11   0.95 mean   qi                1.77456</code></pre>
+1 6.66682e-11 6.60650e-11 6.72526e-11   0.95 mean   qi                1.78133</code></pre>
 </div>
 </div>
 <p>The beauty of Bayesian models is in the posterior distributions, we can look at those:</p>
@@ -1006,9 +1006,9 @@ font-style: inherit;">#convert sideral orbit to seconds</span></span>
 background-color: null;
 font-style: inherit;">T =</span> sideralOrbit <span class="sc" style="color: #5E5E5E;
 background-color: null;
-font-style: inherit;">*</span> <span class="fl" style="color: #AD0000;
+font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
 background-color: null;
-font-style: inherit;">23.9344696</span> <span class="sc" style="color: #5E5E5E;
+font-style: inherit;">24</span> <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
 background-color: null;
@@ -1065,10 +1065,191 @@ background-color: null;
 font-style: inherit;">|&gt;</span> </span>
 <span id="cb11-20">  <span class="fu" style="color: #4758AB;
 background-color: null;
+font-style: inherit;">group_by</span>(englishName) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb11-21">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mean_qi</span>(Tpred) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb11-22">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">select</span>(<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span>.width<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span>.interval) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb11-23">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">left_join</span>(planets <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">select</span>(englishName, T)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb11-24">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">perc_err =</span> (T <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> Tpred) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> T <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">100</span>,</span>
+<span id="cb11-25">         <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">across</span>(Tpred<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span>T, \(x) x <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb11-26">                  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.difftime</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">units =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"secs"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb11-27">                  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">units&lt;-</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"days"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb11-28">                  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">round</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>)),</span>
+<span id="cb11-29">         <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">abs_err =</span> T <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> Tpred)</span></code></pre></div></div>
+<div class="cell-output-display">
+<div class="kable-table">
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 12%">
+<col style="width: 15%">
+<col style="width: 15%">
+<col style="width: 15%">
+<col style="width: 15%">
+<col style="width: 11%">
+<col style="width: 13%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">englishName</th>
+<th style="text-align: left;">Tpred</th>
+<th style="text-align: left;">.lower</th>
+<th style="text-align: left;">.upper</th>
+<th style="text-align: left;">T</th>
+<th style="text-align: right;">perc_err</th>
+<th style="text-align: left;">abs_err</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Mercury</td>
+<td style="text-align: left;">88.018 days</td>
+<td style="text-align: left;">87.634 days</td>
+<td style="text-align: left;">88.418 days</td>
+<td style="text-align: left;">87.969 days</td>
+<td style="text-align: right;">-0.0552848</td>
+<td style="text-align: left;">-0.049 days</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Venus</td>
+<td style="text-align: left;">224.823 days</td>
+<td style="text-align: left;">223.843 days</td>
+<td style="text-align: left;">225.846 days</td>
+<td style="text-align: left;">224.701 days</td>
+<td style="text-align: right;">-0.0544574</td>
+<td style="text-align: left;">-0.122 days</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Earth</td>
+<td style="text-align: left;">365.459 days</td>
+<td style="text-align: left;">363.864 days</td>
+<td style="text-align: left;">367.120 days</td>
+<td style="text-align: left;">365.256 days</td>
+<td style="text-align: right;">-0.0554693</td>
+<td style="text-align: left;">-0.203 days</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Mars</td>
+<td style="text-align: left;">687.351 days</td>
+<td style="text-align: left;">684.353 days</td>
+<td style="text-align: left;">690.476 days</td>
+<td style="text-align: left;">686.980 days</td>
+<td style="text-align: right;">-0.0539938</td>
+<td style="text-align: left;">-0.371 days</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Jupiter</td>
+<td style="text-align: left;">4335.085 days</td>
+<td style="text-align: left;">4316.175 days</td>
+<td style="text-align: left;">4354.796 days</td>
+<td style="text-align: left;">4332.589 days</td>
+<td style="text-align: right;">-0.0576027</td>
+<td style="text-align: left;">-2.496 days</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Saturn</td>
+<td style="text-align: left;">10761.472 days</td>
+<td style="text-align: left;">10714.529 days</td>
+<td style="text-align: left;">10810.402 days</td>
+<td style="text-align: left;">10759.220 days</td>
+<td style="text-align: right;">-0.0209280</td>
+<td style="text-align: left;">-2.252 days</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Uranus</td>
+<td style="text-align: left;">30719.406 days</td>
+<td style="text-align: left;">30585.405 days</td>
+<td style="text-align: left;">30859.081 days</td>
+<td style="text-align: left;">30685.400 days</td>
+<td style="text-align: right;">-0.1108201</td>
+<td style="text-align: left;">-34.006 days</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Neptune</td>
+<td style="text-align: left;">60259.493 days</td>
+<td style="text-align: left;">59996.636 days</td>
+<td style="text-align: left;">60533.482 days</td>
+<td style="text-align: left;">60189.000 days</td>
+<td style="text-align: right;">-0.1171186</td>
+<td style="text-align: left;">-70.493 days</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1">planets_pred <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb12-2">  <span class="fu" style="color: #4758AB;
+background-color: null;
 font-style: inherit;">ggplot</span>() <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span></span>
-<span id="cb11-21">  <span class="fu" style="color: #4758AB;
+<span id="cb12-3">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">stat_pointinterval</span>(<span class="fu" style="color: #4758AB;
 background-color: null;
@@ -1077,76 +1258,96 @@ background-color: null;
 font-style: inherit;">y =</span> Tpred)) <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span></span>
-<span id="cb11-22">  <span class="fu" style="color: #4758AB;
+<span id="cb12-4">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">geom_hline</span>(<span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">aes</span>(<span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">yintercept =</span> T),</span>
-<span id="cb11-23">             <span class="at" style="color: #657422;
+<span id="cb12-5">             <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">linetype =</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">2</span>,</span>
-<span id="cb11-24">             <span class="at" style="color: #657422;
+<span id="cb12-6">             <span class="at" style="color: #657422;
 background-color: null;
-font-style: inherit;">data =</span> planets) <span class="sc" style="color: #5E5E5E;
+font-style: inherit;">data =</span> planets <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">T =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.difftime</span>(T, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">units =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"secs"</span>))) <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span></span>
-<span id="cb11-25">  <span class="fu" style="color: #4758AB;
+<span id="cb12-7">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">facet_wrap</span>(<span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">vars</span>(englishName),</span>
-<span id="cb11-26">             <span class="at" style="color: #657422;
+<span id="cb12-8">             <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">scales =</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"free"</span>) <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span></span>
-<span id="cb11-27">  <span class="fu" style="color: #4758AB;
+<span id="cb12-9">  <span class="fu" style="color: #4758AB;
 background-color: null;
-font-style: inherit;">scale_y_continuous</span>(<span class="at" style="color: #657422;
+font-style: inherit;">scale_y_time</span>(<span class="at" style="color: #657422;
 background-color: null;
-font-style: inherit;">labels =</span> scales<span class="sc" style="color: #5E5E5E;
+font-style: inherit;">labels =</span> \(x) <span class="fu" style="color: #4758AB;
 background-color: null;
-font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+font-style: inherit;">str_c</span>(<span class="fu" style="color: #4758AB;
 background-color: null;
-font-style: inherit;">label_scientific</span>()) <span class="sc" style="color: #5E5E5E;
+font-style: inherit;">round</span>(x <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3600</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>), <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">" d"</span>)) <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span></span>
-<span id="cb11-28">  <span class="fu" style="color: #4758AB;
+<span id="cb12-10">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">scale_x_discrete</span>() <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span></span>
-<span id="cb11-29">  <span class="fu" style="color: #4758AB;
+<span id="cb12-11">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">labs</span>(<span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">x =</span> <span class="cn" style="color: #8f5902;
 background-color: null;
 font-style: inherit;">NULL</span>,</span>
-<span id="cb11-30">       <span class="at" style="color: #657422;
+<span id="cb12-12">       <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">y =</span> <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"Orbital period (s)"</span>,</span>
-<span id="cb11-31">       <span class="at" style="color: #657422;
+font-style: inherit;">"Orbital period"</span>,</span>
+<span id="cb12-13">       <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">title =</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"Predicting orbital periods"</span>,</span>
-<span id="cb11-32">       <span class="at" style="color: #657422;
+<span id="cb12-14">       <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">caption =</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"Median, 66% and 95% quantile intervals. Dashed line represents official value"</span>) <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span></span>
-<span id="cb11-33">  <span class="fu" style="color: #4758AB;
+<span id="cb12-15">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">theme</span>(<span class="at" style="color: #657422;
 background-color: null;

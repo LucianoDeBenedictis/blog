@@ -8,7 +8,7 @@ execute:
   warning: false
 ---
 
-> My experience with astronomy and astrophysics boils down to teenage curiosity. The main purpose of this example is as an exercise in `brms` nonlinear syntax. There are probably many tiny errors and things that could be done better.
+> My experience with astronomy and astrophysics boils down to teenage curiosity. The main purpose of this example is as an exercise in `brms` nonlinear syntax. There are probably many tiny errors and things that could be done better. The way the variables are used doesn't have to reflect [the order in which they were inferred](https://www.youtube.com/watch?v=YdOXS_9_P4U), it's purely a statistical exercise. A more realistic story would be to [weigh things on Earth](https://www.scienceabc.com/nature/universe/how-a-planet-is-weighed) and then use the inferred gravitational constant to find out the mass of astronomical bodies.
 
 ## What?
 
@@ -114,8 +114,8 @@ data <- moons |>
     #convert semi-major axis to meters
     a = semimajorAxis * 1000,
     #convert sideral orbit to seconds
-    #to be fancy, use a more accurate sideral day
-    T = sideralOrbit * 23.9344696 * 3600,
+    #assuming these are conventional days, not sideral seems to be the right call
+    T = sideralOrbit * 24 * 3600,
     #remind the value of pi to the model
     pi = pi)
 
@@ -204,7 +204,7 @@ planets <- planets |>
     #convert semi-major axis to meters
     a = semimajorAxis * 1000,
     #convert sideral orbit to seconds
-    T = sideralOrbit * 23.9344696 * 3600,
+    T = sideralOrbit * 24 * 3600,
     #remind the value of pi to the model
     pi = pi)
 
@@ -213,17 +213,29 @@ planets_pred <- planets |>
   mutate(Tpred = sqrt((4*pi^2*a^3)/(G*M)))
 
 planets_pred |> 
+  group_by(englishName) |> 
+  mean_qi(Tpred) |> 
+  select(!.width:.interval) |> 
+  left_join(planets |> select(englishName, T)) |> 
+  mutate(perc_err = (T - Tpred) / T * 100,
+         across(Tpred:T, \(x) x |> 
+                  as.difftime(units = "secs") |> 
+                  `units<-`("days") |> 
+                  round(3)),
+         abs_err = T - Tpred)
+
+planets_pred |> 
   ggplot() +
   stat_pointinterval(aes(y = Tpred)) +
   geom_hline(aes(yintercept = T),
              linetype = 2,
-             data = planets) +
+             data = planets |> mutate(T = as.difftime(T, units = "secs"))) +
   facet_wrap(vars(englishName),
              scales = "free") +
-  scale_y_continuous(labels = scales::label_scientific()) +
+  scale_y_time(labels = \(x) str_c(round(x / 3600, 1), " d")) +
   scale_x_discrete() +
   labs(x = NULL,
-       y = "Orbital period (s)",
+       y = "Orbital period",
        title = "Predicting orbital periods",
        caption = "Median, 66% and 95% quantile intervals. Dashed line represents official value") +
   theme(plot.title = element_text(hjust = 0.5))

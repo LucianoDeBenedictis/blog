@@ -8,7 +8,6 @@ execute:
 website:
   title: "Luciano's blog"
   site-url: https://lucianodebenedictis.github.io/blog/
-  description: "Desktop ecology"
   navbar:
     background: primary
     right:
