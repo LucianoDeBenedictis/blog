@@ -164,7 +164,7 @@ window.Quarto = {
 <link rel="stylesheet" href="../../styles.css">
 <meta property="og:title" content="Fitting the gravitational constant with brms – Luciano’s blog">
 <meta property="og:description" content="Desktop ecology">
-<meta property="og:image" content="https://lucianodebenedictis.github.io/blog/posts/gravity/index_files/figure-html/unnamed-chunk-7-1.png">
+<meta property="og:image" content="https://lucianodebenedictis.github.io/blog/posts/gravity/index_files/figure-html/unnamed-chunk-5-1.png">
 <meta property="og:site_name" content="Luciano’s blog">
 <meta property="og:image:height" content="960">
 <meta property="og:image:width" content="1344">
@@ -444,8 +444,8 @@ window.Quarto = {
 </blockquote>
 <section id="what" class="level2">
 <h2 class="anchored" data-anchor-id="what">What?</h2>
-<p>In some disciplines, there is a disconnect between scientific theory and use of models and current practice. In physics, for example, theory often results in an explicit functional form, this model is tested against reality, and it is provisionally kept as long as there are no obvious discrepancies with observation. If and when those arise, it’s an incentive to question the model and look for a better one. In many other scientific fields, the role of falsification seems like the opposite: nobody really believes the “null” model represents reality, and observing a lack of fit to data is the goal. Null hypothesis rejected, you discovered something new (maybe) and you win! This contrast has been highlighted several times, for example by <span class="citation" data-cites="meehl1967">(<a href="#ref-meehl1967" role="doc-biblioref">Meehl 1967</a>)</span>.</p>
-<p>It doesn’t have to be like this. Even when fitting statistical models to empirical data, sometimes you’re lucky and theory provides you with a formula that you can use in place of an additive linear model. Chapter 16 of <span class="citation" data-cites="mcelreath2020">(<a href="#ref-mcelreath2020" role="doc-biblioref">McElreath 2020</a>)</span> is dedicated to examples of this, including one with the Lotka-Volterra equations. Nonlinear model formulas are key to this approach, so, with the purpose of getting in some exercise with them in <code>brms</code>, I have developed the following contrived example:</p>
+<p>In some disciplines, there is a disconnect between scientific theory and use of models and current practice. In physics, for example, theory often results in an explicit functional form, this model is tested against reality, and it is provisionally kept as long as there are no obvious discrepancies with observation. If and when those arise, it’s an incentive to question the model and look for a better one. In many other scientific fields, the role of falsification seems like the opposite: nobody really believes the “null” model represents reality, and observing a lack of fit to data is the goal. Null hypothesis rejected, you discovered something new (maybe) and you win! This contrast has been highlighted several times, for example by <span class="citation" data-cites="meehl1967">Meehl (<a href="#ref-meehl1967" role="doc-biblioref">1967</a>)</span>.</p>
+<p>It doesn’t have to be like this. Even when fitting statistical models to empirical data, sometimes you’re lucky and theory provides you with a formula that you can use in place of an additive linear model. Chapter 16 of <span class="citation" data-cites="mcelreath2020">McElreath (<a href="#ref-mcelreath2020" role="doc-biblioref">2020</a>)</span> is dedicated to examples of this, including one with the Lotka-Volterra equations. Nonlinear model formulas are key to this approach, so, with the purpose of getting in some exercise with them in <code>brms</code>, I have developed the following contrived example:</p>
 <p><strong><em>Let’s fit Kepler’s third law in <code>brms</code> to find the gravitational constant G</em></strong></p>
 <p>What I mean exactly is the <a href="https://en.wikipedia.org/wiki/Kepler's_laws_of_planetary_motion#Third_law">formula</a> that you get by substituting Newton’s law of gravitation into Kepler’s law</p>
 <p><span class="math display">\[\frac{a^{3}}{T^{2}}=\frac{G(M+m)}{4\pi^{2}}\]</span></p>
@@ -781,17 +781,25 @@ Draws were sampled using sample(hmc). For each parameter, Bulk_ESS
 and Tail_ESS are effective sample size measures, and Rhat is the potential
 scale reduction factor on split chains (at convergence, Rhat = 1).</code></pre>
 </div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">pp_check</span>(fit)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
 </div>
 <p>How well did that go? Not so bad, considering all potential sources of error: almost as good as what had been derived from experiments 200 years ago, albeit with larger uncertainty.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>g_draws <span class="ot">&lt;-</span> fit <span class="sc">|&gt;</span> </span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_draws_df</span>(<span class="at">variable =</span> <span class="st">"b_logG_Intercept"</span>) <span class="sc">|&gt;</span> </span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">G =</span> <span class="dv">10</span><span class="sc">^</span>b_logG_Intercept)</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>g_draws <span class="sc">|&gt;</span> </span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mean_qi</span>(G) <span class="sc">|&gt;</span></span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">rel_uncertainty =</span> (.upper <span class="sc">-</span> .lower) <span class="sc">/</span> G <span class="sc">*</span><span class="dv">100</span>) <span class="sc">|&gt;</span> </span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>g_draws <span class="ot">&lt;-</span> fit <span class="sc">|&gt;</span> </span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_draws_df</span>(<span class="at">variable =</span> <span class="st">"b_logG_Intercept"</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">G =</span> <span class="dv">10</span><span class="sc">^</span>b_logG_Intercept)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>g_draws <span class="sc">|&gt;</span> </span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mean_qi</span>(G) <span class="sc">|&gt;</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">rel_uncertainty =</span> (.upper <span class="sc">-</span> .lower) <span class="sc">/</span> G <span class="sc">*</span><span class="dv">100</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 1 × 7
             G      .lower      .upper .width .point .interval rel_uncertainty
@@ -801,15 +809,16 @@ scale reduction factor on split chains (at convergence, Rhat = 1).</code></pre>
 </div>
 <p>The beauty of Bayesian models is in the posterior distributions, we can look at those:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>g_draws <span class="sc">|&gt;</span> </span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> G)) <span class="sc">+</span></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_slab</span>(<span class="fu">aes</span>(<span class="at">fill_ramp =</span> <span class="fu">after_stat</span>(level)),</span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>                    <span class="at">.width =</span> <span class="fu">c</span>(.<span class="dv">50</span>, .<span class="dv">80</span>, .<span class="dv">95</span>, <span class="dv">1</span>),</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>                    <span class="at">fill =</span> <span class="st">"mediumpurple"</span>,</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>            <span class="at">show.legend =</span> F) <span class="sc">+</span></span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="fl">6.6743e-11</span>, <span class="at">linetype =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">annotate</span>(<span class="st">"text"</span>, <span class="at">x =</span> <span class="fl">6.7e-11</span>, <span class="at">y =</span> <span class="dv">1</span>, <span class="at">label =</span> <span class="st">"What the NIST says"</span>) <span class="sc">+</span></span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">name =</span> <span class="cn">NULL</span>, <span class="at">breaks =</span> <span class="cn">NULL</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>g_draws <span class="sc">|&gt;</span> </span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> G)) <span class="sc">+</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_slab</span>(<span class="fu">aes</span>(<span class="at">fill_ramp =</span> <span class="fu">after_stat</span>(level)),</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>                    <span class="at">.width =</span> <span class="fu">c</span>(.<span class="dv">50</span>, .<span class="dv">80</span>, .<span class="dv">95</span>, <span class="dv">1</span>),</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>                    <span class="at">fill =</span> <span class="st">"mediumpurple"</span>,</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>            <span class="at">show.legend =</span> F) <span class="sc">+</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="fl">6.6743e-11</span>, <span class="at">linetype =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">annotate</span>(<span class="st">"text"</span>, <span class="at">x =</span> <span class="fl">6.7e-11</span>, <span class="at">y =</span> <span class="dv">1</span>, <span class="at">label =</span> <span class="st">"What the NIST says"</span>) <span class="sc">+</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">name =</span> <span class="cn">NULL</span>, <span class="at">breaks =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">caption =</span> <span class="st">"Interval widths: 50%, 80%, 95%, 100%"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -824,35 +833,39 @@ scale reduction factor on split chains (at convergence, Rhat = 1).</code></pre>
 <p>While this is a fine demonstration of nonlinear <code>brms</code> models, at the beginning I mentioned facing the model with reality. To do this we can take the estimated value of G (with all its posterior distribution) and generate predictions on a separate dataset. In this case, I’ll predict the orbital period of planets around the sun using G, masses, and semi-major axes.</p>
 <p><span class="math display">\[T = \sqrt{\frac{4\pi^{2}a^{3}}{G\widehat{M}}}\]</span></p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>planets <span class="ot">&lt;-</span> planets <span class="sc">|&gt;</span> </span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(sideralOrbit) <span class="sc">|&gt;</span> </span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">englishName =</span> <span class="fu">fct</span>(englishName),</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">#the mass of the sun in kg</span></span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">mass_sun =</span> <span class="fl">1.988475e30</span>,</span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">M =</span> mass <span class="sc">+</span> mass_sun,</span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">#convert semi-major axis to meters</span></span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">a =</span> semimajorAxis <span class="sc">*</span> <span class="dv">1000</span>,</span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">#convert sideral orbit to seconds</span></span>
-<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">T =</span> sideralOrbit <span class="sc">*</span> <span class="fl">23.9344696</span> <span class="sc">*</span> <span class="dv">3600</span>,</span>
-<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">#remind the value of pi to the model</span></span>
-<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">pi =</span> pi)</span>
-<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>planets_pred <span class="ot">&lt;-</span> planets <span class="sc">|&gt;</span> </span>
-<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">expand_grid</span>(<span class="at">G =</span> g_draws<span class="sc">$</span>G) <span class="sc">|&gt;</span> </span>
-<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Tpred =</span> <span class="fu">sqrt</span>((<span class="dv">4</span><span class="sc">*</span>pi<span class="sc">^</span><span class="dv">2</span><span class="sc">*</span>a<span class="sc">^</span><span class="dv">3</span>)<span class="sc">/</span>(G<span class="sc">*</span>M)))</span>
-<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>planets_pred <span class="sc">|&gt;</span> </span>
-<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>() <span class="sc">+</span></span>
-<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_pointinterval</span>(<span class="fu">aes</span>(<span class="at">y =</span> Tpred)) <span class="sc">+</span></span>
-<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="fu">aes</span>(<span class="at">yintercept =</span> T),</span>
-<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>             <span class="at">linetype =</span> <span class="dv">2</span>,</span>
-<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>             <span class="at">data =</span> planets) <span class="sc">+</span></span>
-<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="fu">vars</span>(englishName),</span>
-<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>             <span class="at">scales =</span> <span class="st">"free"</span>) <span class="sc">+</span></span>
-<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">labels =</span> scales<span class="sc">::</span><span class="fu">label_scientific</span>()) <span class="sc">+</span></span>
-<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="cn">NULL</span>,</span>
-<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Orbital period (s)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>planets <span class="ot">&lt;-</span> planets <span class="sc">|&gt;</span> </span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(sideralOrbit) <span class="sc">|&gt;</span> </span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">englishName =</span> <span class="fu">fct</span>(englishName),</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">#the mass of the sun in kg</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">mass_sun =</span> <span class="fl">1.988475e30</span>,</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">M =</span> mass <span class="sc">+</span> mass_sun,</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">#convert semi-major axis to meters</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">a =</span> semimajorAxis <span class="sc">*</span> <span class="dv">1000</span>,</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">#convert sideral orbit to seconds</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">T =</span> sideralOrbit <span class="sc">*</span> <span class="fl">23.9344696</span> <span class="sc">*</span> <span class="dv">3600</span>,</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">#remind the value of pi to the model</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">pi =</span> pi)</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>planets_pred <span class="ot">&lt;-</span> planets <span class="sc">|&gt;</span> </span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">expand_grid</span>(<span class="at">G =</span> g_draws<span class="sc">$</span>G) <span class="sc">|&gt;</span> </span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Tpred =</span> <span class="fu">sqrt</span>((<span class="dv">4</span><span class="sc">*</span>pi<span class="sc">^</span><span class="dv">2</span><span class="sc">*</span>a<span class="sc">^</span><span class="dv">3</span>)<span class="sc">/</span>(G<span class="sc">*</span>M)))</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>planets_pred <span class="sc">|&gt;</span> </span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_pointinterval</span>(<span class="fu">aes</span>(<span class="at">y =</span> Tpred)) <span class="sc">+</span></span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="fu">aes</span>(<span class="at">yintercept =</span> T),</span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>             <span class="at">linetype =</span> <span class="dv">2</span>,</span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>             <span class="at">data =</span> planets) <span class="sc">+</span></span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="fu">vars</span>(englishName),</span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>             <span class="at">scales =</span> <span class="st">"free"</span>) <span class="sc">+</span></span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">labels =</span> scales<span class="sc">::</span><span class="fu">label_scientific</span>()) <span class="sc">+</span></span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_discrete</span>() <span class="sc">+</span></span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="cn">NULL</span>,</span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Orbital period (s)"</span>,</span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Predicting orbital periods"</span>,</span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a>       <span class="at">caption =</span> <span class="st">"Median, 66% and 95% quantile intervals. Dashed line represents official value"</span>) <span class="sc">+</span></span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">hjust =</span> <span class="fl">0.5</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -861,7 +874,7 @@ scale reduction factor on split chains (at convergence, Rhat = 1).</code></pre>
 </div>
 </div>
 </div>
-<p>Not too bad!</p>
+<p>Not too bad! Even with our humble estimation, we can still decently predict the orbit of planets.</p>
 
 
 

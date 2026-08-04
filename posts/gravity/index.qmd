@@ -12,9 +12,9 @@ execute:
 
 ## What?
 
-In some disciplines, there is a disconnect between scientific theory and use of models and current practice. In physics, for example, theory often results in an explicit functional form, this model is tested against reality, and it is provisionally kept as long as there are no obvious discrepancies with observation. If and when those arise, it's an incentive to question the model and look for a better one. In many other scientific fields, the role of falsification seems like the opposite: nobody really believes the "null" model represents reality, and observing a lack of fit to data is the goal. Null hypothesis rejected, you discovered something new (maybe) and you win! This contrast has been highlighted several times, for example by [@meehl1967].
+In some disciplines, there is a disconnect between scientific theory and use of models and current practice. In physics, for example, theory often results in an explicit functional form, this model is tested against reality, and it is provisionally kept as long as there are no obvious discrepancies with observation. If and when those arise, it's an incentive to question the model and look for a better one. In many other scientific fields, the role of falsification seems like the opposite: nobody really believes the "null" model represents reality, and observing a lack of fit to data is the goal. Null hypothesis rejected, you discovered something new (maybe) and you win! This contrast has been highlighted several times, for example by @meehl1967.
 
-It doesn't have to be like this. Even when fitting statistical models to empirical data, sometimes you're lucky and theory provides you with a formula that you can use in place of an additive linear model. Chapter 16 of [@mcelreath2020] is dedicated to examples of this, including one with the Lotka-Volterra equations. Nonlinear model formulas are key to this approach, so, with the purpose of getting in some exercise with them in `brms`, I have developed the following contrived example:
+It doesn't have to be like this. Even when fitting statistical models to empirical data, sometimes you're lucky and theory provides you with a formula that you can use in place of an additive linear model. Chapter 16 of @mcelreath2020 is dedicated to examples of this, including one with the Lotka-Volterra equations. Nonlinear model formulas are key to this approach, so, with the purpose of getting in some exercise with them in `brms`, I have developed the following contrived example:
 
 ***Let's fit Kepler's third law in `brms` to find the gravitational constant G***
 
@@ -154,6 +154,8 @@ Time to actually fit the model.
 fit <- brm(formula, data, seed = 950, silent = 2)
 
 fit
+
+pp_check(fit)
 ```
 
 How well did that go? Not so bad, considering all potential sources of error: almost as good as what had been derived from experiments 200 years ago, albeit with larger uncertainty.
@@ -180,7 +182,8 @@ g_draws |>
             show.legend = F) +
   geom_vline(xintercept = 6.6743e-11, linetype = 2) +
   annotate("text", x = 6.7e-11, y = 1, label = "What the NIST says") +
-  scale_y_continuous(name = NULL, breaks = NULL)
+  scale_y_continuous(name = NULL, breaks = NULL) +
+  labs(caption = "Interval widths: 50%, 80%, 95%, 100%")
 ```
 
 ## Generate predictions
@@ -217,8 +220,12 @@ planets_pred |>
   facet_wrap(vars(englishName),
              scales = "free") +
   scale_y_continuous(labels = scales::label_scientific()) +
+  scale_x_discrete() +
   labs(x = NULL,
-       y = "Orbital period (s)")
+       y = "Orbital period (s)",
+       title = "Predicting orbital periods",
+       caption = "Median, 66% and 95% quantile intervals. Dashed line represents official value") +
+  theme(plot.title = element_text(hjust = 0.5))
 ```
 
-Not too bad!
+Not too bad! Even with our humble estimation, we can still decently predict the orbit of planets.
