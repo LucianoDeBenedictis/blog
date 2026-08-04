@@ -1,5 +1,6 @@
 ---
 title: "Fitting the gravitational constant with brms"
+date: 2026-08-04
 format: html
 bibliography: references.bib
 ---
@@ -142,8 +143,7 @@ get_prior(formula, data)
 Time to actually fit the model.
 
 ```{r}
-fit <- brm(formula, data, file = "g_fit",
-           seed = 950)
+fit <- brm(formula, data, seed = 950)
 
 fit
 ```

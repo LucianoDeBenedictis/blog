@@ -10,30 +10,7 @@
 <atom:link href="https://lucianodebenedictis.github.io/blog/index.xml" rel="self" type="application/rss+xml"/>
 <description>Desktop ecology</description>
 <generator>quarto-1.9.38</generator>
-<lastBuildDate>Sun, 02 Aug 2026 22:00:00 GMT</lastBuildDate>
-<item>
-  <title>Starting a blog!</title>
-  <dc:creator>Luciano L.M. De Benedictis</dc:creator>
-  <link>https://lucianodebenedictis.github.io/blog/posts/starting/</link>
-  <description><![CDATA[ 
-
-
-
-
-
-
-<p>Scientific debate currently revolves around papers, being the agreed upon way to make science, but they can’t be the only outlet for scholarly discussion. Post-publication review is still mostly theory, and post-publication is often severely lacking. Response articles exist, but usually you don’t want to go through months of peer review unless it’s something really big, and it seems more of a way to get into an academic fight than anything at times.</p>
-<p>So, what do we have? Conferences are one option, but they involve a restricted number of people at one specific time. Mostly, the discussion of published material involves some off-handed comments while referencing it, lost in the body of a text. And then there’s the blog, this old-fashioned way to use the internet.</p>
-<p>I’m not ashamed to say that I have learnt more from some posts on blogs such as those in <a href="../../resources.html">resources</a> than from some papers. Inspired by those and others, I decided to start a blog, in the hope of doing a bit of the same myself. Posts could be small ideas, or just practical examples. Some of the latter come from my own work, where they might have been small technicalities, shadowed by the bigger goal and message, which could be of broader interest despite their simplicity.</p>
-<p>I have focused a lot on discussion, and surely there is the possibility of real-time discussion, as allowed by the internet, but I also intend this in the broader terms: publishing something for people to read and benefit from is already part of a discussion. So, I’m happy to write about what I like to do in a less formal way, and you’re welcome to just read the incoming posts, maybe benefit from them or even acknowledge the help!</p>
-<p>Have a nice stay here.</p>
-
-
-
- ]]></description>
-  <guid>https://lucianodebenedictis.github.io/blog/posts/starting/</guid>
-  <pubDate>Sun, 02 Aug 2026 22:00:00 GMT</pubDate>
-</item>
+<lastBuildDate>Mon, 03 Aug 2026 22:00:00 GMT</lastBuildDate>
 <item>
   <title>Fitting the gravitational constant with brms</title>
   <dc:creator>Luciano L.M. De Benedictis</dc:creator>
@@ -604,16 +581,135 @@ font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">brm</span>(formula, data, <span class="at" style="color: #657422;
 background-color: null;
-font-style: inherit;">file =</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"g_fit"</span>,</span>
-<span id="cb13-2">           <span class="at" style="color: #657422;
-background-color: null;
 font-style: inherit;">seed =</span> <span class="dv" style="color: #AD0000;
 background-color: null;
-font-style: inherit;">950</span>)</span>
-<span id="cb13-3"></span>
-<span id="cb13-4">fit</span></code></pre></div></div>
+font-style: inherit;">950</span>)</span></code></pre></div></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Compiling Stan program...</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Trying to compile a simple C file</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Running /usr/lib64/R/bin/R CMD SHLIB foo.c
+using C compiler: ‘gcc (GCC) 16.1.1 20260515 (Red Hat 16.1.1-2)’
+gcc -I"/usr/include/R" -DNDEBUG   -I"/home/luc/R/x86_64-redhat-linux-gnu-library/4.6/Rcpp/include/"  -I"/home/luc/R/x86_64-redhat-linux-gnu-library/4.6/RcppEigen/include/"  -I"/home/luc/R/x86_64-redhat-linux-gnu-library/4.6/RcppEigen/include/unsupported"  -I"/home/luc/R/x86_64-redhat-linux-gnu-library/4.6/BH/include" -I"/home/luc/R/x86_64-redhat-linux-gnu-library/4.6/StanHeaders/include/src/"  -I"/home/luc/R/x86_64-redhat-linux-gnu-library/4.6/StanHeaders/include/"  -I"/home/luc/R/x86_64-redhat-linux-gnu-library/4.6/RcppParallel/include/"  -I"/home/luc/R/x86_64-redhat-linux-gnu-library/4.6/rstan/include" -DEIGEN_NO_DEBUG  -DBOOST_DISABLE_ASSERTS  -DBOOST_PENDING_INTEGER_LOG2_HPP  -DSTAN_THREADS  -DUSE_STANC3 -DSTRICT_R_HEADERS  -DBOOST_PHOENIX_NO_VARIADIC_EXPRESSION  -D_HAS_AUTO_PTR_ETC=0  -include '/home/luc/R/x86_64-redhat-linux-gnu-library/4.6/StanHeaders/include/stan/math/prim/fun/Eigen.hpp'  -D_REENTRANT -DRCPP_PARALLEL_USE_TBB=1   -I/usr/local/include    -fpic  -O2 -flto=auto -ffat-lto-objects -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-U_FORTIFY_SOURCE,-D_FORTIFY_SOURCE=3 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1  -m64 -march=x86-64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -mtls-dialect=gnu2 -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer    -c foo.c -o foo.o
+In file included from /home/luc/R/x86_64-redhat-linux-gnu-library/4.6/RcppEigen/include/Eigen/Core:19,
+                 from /home/luc/R/x86_64-redhat-linux-gnu-library/4.6/RcppEigen/include/Eigen/Dense:1,
+                 from /home/luc/R/x86_64-redhat-linux-gnu-library/4.6/StanHeaders/include/stan/math/prim/fun/Eigen.hpp:22,
+                 from &lt;command-line&gt;:
+/home/luc/R/x86_64-redhat-linux-gnu-library/4.6/RcppEigen/include/Eigen/src/Core/util/Macros.h:679:10: fatal error: cmath: File o directory non esistente
+  679 | #include &lt;cmath&gt;
+      |          ^~~~~~~
+compilation terminated.
+make: *** [/usr/lib64/R/etc/Makeconf:190: foo.o] Error 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Start sampling</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+SAMPLING FOR MODEL 'anon_model' NOW (CHAIN 1).
+Chain 1: 
+Chain 1: Gradient evaluation took 5.4e-05 seconds
+Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.54 seconds.
+Chain 1: Adjust your expectations accordingly!
+Chain 1: 
+Chain 1: 
+Chain 1: Iteration:    1 / 2000 [  0%]  (Warmup)
+Chain 1: Iteration:  200 / 2000 [ 10%]  (Warmup)
+Chain 1: Iteration:  400 / 2000 [ 20%]  (Warmup)
+Chain 1: Iteration:  600 / 2000 [ 30%]  (Warmup)
+Chain 1: Iteration:  800 / 2000 [ 40%]  (Warmup)
+Chain 1: Iteration: 1000 / 2000 [ 50%]  (Warmup)
+Chain 1: Iteration: 1001 / 2000 [ 50%]  (Sampling)
+Chain 1: Iteration: 1200 / 2000 [ 60%]  (Sampling)
+Chain 1: Iteration: 1400 / 2000 [ 70%]  (Sampling)
+Chain 1: Iteration: 1600 / 2000 [ 80%]  (Sampling)
+Chain 1: Iteration: 1800 / 2000 [ 90%]  (Sampling)
+Chain 1: Iteration: 2000 / 2000 [100%]  (Sampling)
+Chain 1: 
+Chain 1:  Elapsed Time: 0.154 seconds (Warm-up)
+Chain 1:                0.136 seconds (Sampling)
+Chain 1:                0.29 seconds (Total)
+Chain 1: 
+
+SAMPLING FOR MODEL 'anon_model' NOW (CHAIN 2).
+Chain 2: 
+Chain 2: Gradient evaluation took 2.5e-05 seconds
+Chain 2: 1000 transitions using 10 leapfrog steps per transition would take 0.25 seconds.
+Chain 2: Adjust your expectations accordingly!
+Chain 2: 
+Chain 2: 
+Chain 2: Iteration:    1 / 2000 [  0%]  (Warmup)
+Chain 2: Iteration:  200 / 2000 [ 10%]  (Warmup)
+Chain 2: Iteration:  400 / 2000 [ 20%]  (Warmup)
+Chain 2: Iteration:  600 / 2000 [ 30%]  (Warmup)
+Chain 2: Iteration:  800 / 2000 [ 40%]  (Warmup)
+Chain 2: Iteration: 1000 / 2000 [ 50%]  (Warmup)
+Chain 2: Iteration: 1001 / 2000 [ 50%]  (Sampling)
+Chain 2: Iteration: 1200 / 2000 [ 60%]  (Sampling)
+Chain 2: Iteration: 1400 / 2000 [ 70%]  (Sampling)
+Chain 2: Iteration: 1600 / 2000 [ 80%]  (Sampling)
+Chain 2: Iteration: 1800 / 2000 [ 90%]  (Sampling)
+Chain 2: Iteration: 2000 / 2000 [100%]  (Sampling)
+Chain 2: 
+Chain 2:  Elapsed Time: 0.182 seconds (Warm-up)
+Chain 2:                0.134 seconds (Sampling)
+Chain 2:                0.316 seconds (Total)
+Chain 2: 
+
+SAMPLING FOR MODEL 'anon_model' NOW (CHAIN 3).
+Chain 3: 
+Chain 3: Gradient evaluation took 2.5e-05 seconds
+Chain 3: 1000 transitions using 10 leapfrog steps per transition would take 0.25 seconds.
+Chain 3: Adjust your expectations accordingly!
+Chain 3: 
+Chain 3: 
+Chain 3: Iteration:    1 / 2000 [  0%]  (Warmup)
+Chain 3: Iteration:  200 / 2000 [ 10%]  (Warmup)
+Chain 3: Iteration:  400 / 2000 [ 20%]  (Warmup)
+Chain 3: Iteration:  600 / 2000 [ 30%]  (Warmup)
+Chain 3: Iteration:  800 / 2000 [ 40%]  (Warmup)
+Chain 3: Iteration: 1000 / 2000 [ 50%]  (Warmup)
+Chain 3: Iteration: 1001 / 2000 [ 50%]  (Sampling)
+Chain 3: Iteration: 1200 / 2000 [ 60%]  (Sampling)
+Chain 3: Iteration: 1400 / 2000 [ 70%]  (Sampling)
+Chain 3: Iteration: 1600 / 2000 [ 80%]  (Sampling)
+Chain 3: Iteration: 1800 / 2000 [ 90%]  (Sampling)
+Chain 3: Iteration: 2000 / 2000 [100%]  (Sampling)
+Chain 3: 
+Chain 3:  Elapsed Time: 0.16 seconds (Warm-up)
+Chain 3:                0.136 seconds (Sampling)
+Chain 3:                0.296 seconds (Total)
+Chain 3: 
+
+SAMPLING FOR MODEL 'anon_model' NOW (CHAIN 4).
+Chain 4: 
+Chain 4: Gradient evaluation took 2.5e-05 seconds
+Chain 4: 1000 transitions using 10 leapfrog steps per transition would take 0.25 seconds.
+Chain 4: Adjust your expectations accordingly!
+Chain 4: 
+Chain 4: 
+Chain 4: Iteration:    1 / 2000 [  0%]  (Warmup)
+Chain 4: Iteration:  200 / 2000 [ 10%]  (Warmup)
+Chain 4: Iteration:  400 / 2000 [ 20%]  (Warmup)
+Chain 4: Iteration:  600 / 2000 [ 30%]  (Warmup)
+Chain 4: Iteration:  800 / 2000 [ 40%]  (Warmup)
+Chain 4: Iteration: 1000 / 2000 [ 50%]  (Warmup)
+Chain 4: Iteration: 1001 / 2000 [ 50%]  (Sampling)
+Chain 4: Iteration: 1200 / 2000 [ 60%]  (Sampling)
+Chain 4: Iteration: 1400 / 2000 [ 70%]  (Sampling)
+Chain 4: Iteration: 1600 / 2000 [ 80%]  (Sampling)
+Chain 4: Iteration: 1800 / 2000 [ 90%]  (Sampling)
+Chain 4: Iteration: 2000 / 2000 [100%]  (Sampling)
+Chain 4: 
+Chain 4:  Elapsed Time: 0.166 seconds (Warm-up)
+Chain 4:                0.12 seconds (Sampling)
+Chain 4:                0.286 seconds (Total)
+Chain 4: </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1">fit</span></code></pre></div></div>
 <div class="cell-output cell-output-stdout">
 <pre><code> Family: gaussian 
   Links: mu = identity 
@@ -638,12 +734,12 @@ scale reduction factor on split chains (at convergence, Rhat = 1).</code></pre>
 </div>
 <p>How well did that go? Not so bad, considering all potential sources of error: almost as good as what had been derived from experiments 200 years ago, albeit with larger uncertainty.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1">g_draws <span class="ot" style="color: #003B4F;
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1">g_draws <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> fit <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">|&gt;</span> </span>
-<span id="cb15-2">  <span class="fu" style="color: #4758AB;
+<span id="cb21-2">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">as_draws_df</span>(<span class="at" style="color: #657422;
 background-color: null;
@@ -652,7 +748,7 @@ background-color: null;
 font-style: inherit;">"b_logG_Intercept"</span>) <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">|&gt;</span> </span>
-<span id="cb15-3">  <span class="fu" style="color: #4758AB;
+<span id="cb21-3">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">mutate</span>(<span class="at" style="color: #657422;
 background-color: null;
@@ -661,21 +757,21 @@ background-color: null;
 font-style: inherit;">10</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">^</span>b_logG_Intercept)</span>
-<span id="cb15-4"></span>
-<span id="cb15-5">g_draws <span class="sc" style="color: #5E5E5E;
+<span id="cb21-4"></span>
+<span id="cb21-5">g_draws <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">|&gt;</span> </span>
-<span id="cb15-6">  <span class="fu" style="color: #4758AB;
+<span id="cb21-6">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">mean_qi</span>(G) <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">|&gt;</span> </span>
-<span id="cb15-7">  <span class="fu" style="color: #4758AB;
+<span id="cb21-7">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">as.data.frame</span>() <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">|&gt;</span></span>
-<span id="cb15-8">  <span class="fu" style="color: #4758AB;
+<span id="cb21-8">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">mutate</span>(<span class="at" style="color: #657422;
 background-color: null;
@@ -690,7 +786,7 @@ background-color: null;
 font-style: inherit;">100</span>) <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">|&gt;</span> </span>
-<span id="cb15-9">  <span class="fu" style="color: #4758AB;
+<span id="cb21-9">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">print</span>(<span class="at" style="color: #657422;
 background-color: null;
@@ -711,10 +807,10 @@ Warning: Dropping 'draws_df' class as required metadata was removed.</code></pre
 </div>
 <p>The beauty of Bayesian models is in the posterior distributions, we can look at those:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1">g_draws <span class="sc" style="color: #5E5E5E;
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1">g_draws <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">|&gt;</span> </span>
-<span id="cb18-2">  <span class="fu" style="color: #4758AB;
+<span id="cb24-2">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">ggplot</span>(<span class="fu" style="color: #4758AB;
 background-color: null;
@@ -723,7 +819,7 @@ background-color: null;
 font-style: inherit;">x =</span> G)) <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span></span>
-<span id="cb18-3">  <span class="fu" style="color: #4758AB;
+<span id="cb24-3">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">stat_slab</span>(<span class="fu" style="color: #4758AB;
 background-color: null;
@@ -732,7 +828,7 @@ background-color: null;
 font-style: inherit;">fill_ramp =</span> <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">after_stat</span>(level)),</span>
-<span id="cb18-4">                    <span class="at" style="color: #657422;
+<span id="cb24-4">                    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">.width =</span> <span class="fu" style="color: #4758AB;
 background-color: null;
@@ -745,17 +841,17 @@ background-color: null;
 font-style: inherit;">95</span>, <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>),</span>
-<span id="cb18-5">                    <span class="at" style="color: #657422;
+<span id="cb24-5">                    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">fill =</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"mediumpurple"</span>,</span>
-<span id="cb18-6">            <span class="at" style="color: #657422;
+<span id="cb24-6">            <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">show.legend =</span> F) <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span></span>
-<span id="cb18-7">  <span class="fu" style="color: #4758AB;
+<span id="cb24-7">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">geom_vline</span>(<span class="at" style="color: #657422;
 background-color: null;
@@ -768,7 +864,7 @@ background-color: null;
 font-style: inherit;">2</span>) <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span></span>
-<span id="cb18-8">  <span class="fu" style="color: #4758AB;
+<span id="cb24-8">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">annotate</span>(<span class="st" style="color: #20794D;
 background-color: null;
@@ -787,7 +883,7 @@ background-color: null;
 font-style: inherit;">"What the NIST says"</span>) <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span></span>
-<span id="cb18-9">  <span class="fu" style="color: #4758AB;
+<span id="cb24-9">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">scale_y_continuous</span>(<span class="at" style="color: #657422;
 background-color: null;
@@ -812,51 +908,51 @@ font-style: inherit;">NULL</span>)</span></code></pre></div></div>
 <p>While this is a fine demonstration of nonlinear <code>brms</code> models, at the beginning I mentioned facing the model with reality. To do this we can take the estimated value of G (with all its posterior distribution) and generate predictions on a separate dataset. In this case, I’ll predict the orbital period of planets around the sun using G, masses, and semi-major axes.</p>
 <p><img src="https://latex.codecogs.com/png.latex?T%20=%20%5Csqrt%7B%5Cfrac%7B4%5Cpi%5E%7B2%7Da%5E%7B3%7D%7D%7BG%5Cwidehat%7BM%7D%7D%7D"></p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1">planets <span class="ot" style="color: #003B4F;
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1">planets <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> planets <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">|&gt;</span> </span>
-<span id="cb19-2">  <span class="fu" style="color: #4758AB;
+<span id="cb25-2">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">arrange</span>(sideralOrbit) <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">|&gt;</span> </span>
-<span id="cb19-3">  <span class="fu" style="color: #4758AB;
+<span id="cb25-3">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">mutate</span>(</span>
-<span id="cb19-4">    <span class="at" style="color: #657422;
+<span id="cb25-4">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">englishName =</span> <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">fct</span>(englishName),</span>
-<span id="cb19-5">    <span class="co" style="color: #5E5E5E;
+<span id="cb25-5">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">#the mass of the sun in kg</span></span>
-<span id="cb19-6">    <span class="at" style="color: #657422;
+<span id="cb25-6">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">mass_sun =</span> <span class="fl" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1.988475e30</span>,</span>
-<span id="cb19-7">    <span class="at" style="color: #657422;
+<span id="cb25-7">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">M =</span> mass <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span> mass_sun,</span>
-<span id="cb19-8">    <span class="co" style="color: #5E5E5E;
+<span id="cb25-8">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">#convert semi-major axis to meters</span></span>
-<span id="cb19-9">    <span class="at" style="color: #657422;
+<span id="cb25-9">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">a =</span> semimajorAxis <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1000</span>,</span>
-<span id="cb19-10">    <span class="co" style="color: #5E5E5E;
+<span id="cb25-10">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">#convert sideral orbit to seconds</span></span>
-<span id="cb19-11">    <span class="at" style="color: #657422;
+<span id="cb25-11">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">T =</span> sideralOrbit <span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -867,19 +963,19 @@ background-color: null;
 font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">3600</span>,</span>
-<span id="cb19-12">    <span class="co" style="color: #5E5E5E;
+<span id="cb25-12">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">#remind the value of pi to the model</span></span>
-<span id="cb19-13">    <span class="at" style="color: #657422;
+<span id="cb25-13">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">pi =</span> pi)</span>
-<span id="cb19-14"></span>
-<span id="cb19-15">planets_pred <span class="ot" style="color: #003B4F;
+<span id="cb25-14"></span>
+<span id="cb25-15">planets_pred <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> planets <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">|&gt;</span> </span>
-<span id="cb19-16">  <span class="fu" style="color: #4758AB;
+<span id="cb25-16">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">expand_grid</span>(<span class="at" style="color: #657422;
 background-color: null;
@@ -888,7 +984,7 @@ background-color: null;
 font-style: inherit;">$</span>G) <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">|&gt;</span> </span>
-<span id="cb19-17">  <span class="fu" style="color: #4758AB;
+<span id="cb25-17">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">mutate</span>(<span class="at" style="color: #657422;
 background-color: null;
@@ -913,16 +1009,16 @@ background-color: null;
 font-style: inherit;">/</span>(G<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">*</span>M)))</span>
-<span id="cb19-18"></span>
-<span id="cb19-19">planets_pred <span class="sc" style="color: #5E5E5E;
+<span id="cb25-18"></span>
+<span id="cb25-19">planets_pred <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">|&gt;</span> </span>
-<span id="cb19-20">  <span class="fu" style="color: #4758AB;
+<span id="cb25-20">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">ggplot</span>() <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span></span>
-<span id="cb19-21">  <span class="fu" style="color: #4758AB;
+<span id="cb25-21">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">stat_pointinterval</span>(<span class="fu" style="color: #4758AB;
 background-color: null;
@@ -931,36 +1027,36 @@ background-color: null;
 font-style: inherit;">y =</span> Tpred)) <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span></span>
-<span id="cb19-22">  <span class="fu" style="color: #4758AB;
+<span id="cb25-22">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">geom_hline</span>(<span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">aes</span>(<span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">yintercept =</span> T),</span>
-<span id="cb19-23">             <span class="at" style="color: #657422;
+<span id="cb25-23">             <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">linetype =</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">2</span>,</span>
-<span id="cb19-24">             <span class="at" style="color: #657422;
+<span id="cb25-24">             <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">data =</span> planets) <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span></span>
-<span id="cb19-25">  <span class="fu" style="color: #4758AB;
+<span id="cb25-25">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">facet_wrap</span>(<span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">vars</span>(englishName),</span>
-<span id="cb19-26">             <span class="at" style="color: #657422;
+<span id="cb25-26">             <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">scales =</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"free"</span>) <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span></span>
-<span id="cb19-27">  <span class="fu" style="color: #4758AB;
+<span id="cb25-27">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">scale_y_continuous</span>(<span class="at" style="color: #657422;
 background-color: null;
@@ -971,14 +1067,14 @@ background-color: null;
 font-style: inherit;">label_scientific</span>()) <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span></span>
-<span id="cb19-28">  <span class="fu" style="color: #4758AB;
+<span id="cb25-28">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">labs</span>(<span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">x =</span> <span class="cn" style="color: #8f5902;
 background-color: null;
 font-style: inherit;">NULL</span>,</span>
-<span id="cb19-29">       <span class="at" style="color: #657422;
+<span id="cb25-29">       <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">y =</span> <span class="st" style="color: #20794D;
 background-color: null;
@@ -1006,7 +1102,30 @@ Meehl, Paul E. 1967. <span>“Theory-Testing in Psychology and Physics: A Method
 </div>
 </div></section></div> ]]></description>
   <guid>https://lucianodebenedictis.github.io/blog/posts/gravity/</guid>
-  <pubDate>Tue, 04 Aug 2026 15:04:30 GMT</pubDate>
+  <pubDate>Mon, 03 Aug 2026 22:00:00 GMT</pubDate>
+</item>
+<item>
+  <title>Starting a blog!</title>
+  <dc:creator>Luciano L.M. De Benedictis</dc:creator>
+  <link>https://lucianodebenedictis.github.io/blog/posts/starting/</link>
+  <description><![CDATA[ 
+
+
+
+
+
+
+<p>Scientific debate currently revolves around papers, being the agreed upon way to make science, but they can’t be the only outlet for scholarly discussion. Post-publication review is still mostly theory, and post-publication is often severely lacking. Response articles exist, but usually you don’t want to go through months of peer review unless it’s something really big, and it seems more of a way to get into an academic fight than anything at times.</p>
+<p>So, what do we have? Conferences are one option, but they involve a restricted number of people at one specific time. Mostly, the discussion of published material involves some off-handed comments while referencing it, lost in the body of a text. And then there’s the blog, this old-fashioned way to use the internet.</p>
+<p>I’m not ashamed to say that I have learnt more from some posts on blogs such as those in <a href="../../resources.html">resources</a> than from some papers. Inspired by those and others, I decided to start a blog, in the hope of doing a bit of the same myself. Posts could be small ideas, or just practical examples. Some of the latter come from my own work, where they might have been small technicalities, shadowed by the bigger goal and message, which could be of broader interest despite their simplicity.</p>
+<p>I have focused a lot on discussion, and surely there is the possibility of real-time discussion, as allowed by the internet, but I also intend this in the broader terms: publishing something for people to read and benefit from is already part of a discussion. So, I’m happy to write about what I like to do in a less formal way, and you’re welcome to just read the incoming posts, maybe benefit from them or even acknowledge the help!</p>
+<p>Have a nice stay here.</p>
+
+
+
+ ]]></description>
+  <guid>https://lucianodebenedictis.github.io/blog/posts/starting/</guid>
+  <pubDate>Sun, 02 Aug 2026 22:00:00 GMT</pubDate>
 </item>
 </channel>
 </rss>
