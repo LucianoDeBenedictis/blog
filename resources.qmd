@@ -24,4 +24,5 @@ title: "Resources"
 
 ### Others
 
-- [SORTEE](https://sortee.org/)
+- [SORTEE](https://sortee.org/), the Society for Open, Reliable, and Transparent Ecology and Evolutionary biology. They do a lot of great activities to promote better and more open science in the field
+- [The Ecoinformatics working group of IAVS](www.iavs.org/page/working-groups_ecoinformatics) focuses on computation and databases. We also do webinars open to everyone on useful practical topics. Come say hi!

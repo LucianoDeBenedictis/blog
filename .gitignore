@@ -49,3 +49,6 @@ rsconnect/
 # additionally
 /.quarto/
 **/*.quarto_ipynb
+
+#API keys
+/posts/gravity/apikey.txt

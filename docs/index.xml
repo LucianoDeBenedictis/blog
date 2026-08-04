@@ -34,5 +34,979 @@
   <guid>https://lucianodebenedictis.github.io/blog/posts/starting/</guid>
   <pubDate>Sun, 02 Aug 2026 22:00:00 GMT</pubDate>
 </item>
+<item>
+  <title>Fitting the gravitational constant with brms</title>
+  <dc:creator>Luciano L.M. De Benedictis</dc:creator>
+  <link>https://lucianodebenedictis.github.io/blog/posts/gravity/</link>
+  <description><![CDATA[ 
+
+
+
+
+
+
+<blockquote class="blockquote">
+<p>My experience with astronomy and astrophysics boils down to teenage curiosity. The main purpose of this example is as an exercise in <code>brms</code> nonlinear syntax. There are probably many tiny errors and things that could be done better.</p>
+</blockquote>
+<section id="what" class="level2">
+<h2 class="anchored" data-anchor-id="what">What?</h2>
+<p>In some disciplines, there is a disconnect between scientific theory and use of models and current practice. In physics, for example, theory often results in an explicit functional form, this model is tested against reality, and it is provisionally kept as long as there are no obvious discrepancies with observation. If and when those arise, it’s an incentive to question the model and look for a better one. In many other scientific fields, the role of falsification seems like the opposite: nobody really believes the “null” model represents reality, and observing a lack of fit to data is the goal. Null hypothesis rejected, you discovered something new (maybe) and you win! This contrast has been highlighted several times, for example by <span class="citation" data-cites="meehl1967">(Meehl 1967)</span>.</p>
+<p>It doesn’t have to be like this. Even when fitting statistical models to empirical data, sometimes you’re lucky and theory provides you with a formula that you can use in place of an additive linear model. Chapter 16 of <span class="citation" data-cites="mcelreath2020">(McElreath 2020)</span> is dedicated to examples of this, including one with the Lotka-Volterra equations. Nonlinear model formulas are key to this approach, so, with the purpose of getting in some exercise with them in <code>brms</code>, I have developed the following contrived example:</p>
+<p><strong><em>Let’s fit Kepler’s third law in <code>brms</code> to find the gravitational constant G</em></strong></p>
+<p>What I mean exactly is the <a href="https://en.wikipedia.org/wiki/Kepler's_laws_of_planetary_motion#Third_law">formula</a> that you get by substituting Newton’s law of gravitation into Kepler’s law</p>
+<p><img src="https://latex.codecogs.com/png.latex?%5Cfrac%7Ba%5E%7B3%7D%7D%7BT%5E%7B2%7D%7D=%5Cfrac%7BG(M+m)%7D%7B4%5Cpi%5E%7B2%7D%7D"></p>
+<p>What data to fit this to? I found a <a href="https://api.le-systeme-solaire.net/en/">website</a> that lets you freely download data about solar system bodies in a machine-readable way. For simplicity, I’m restricting this to moons orbiting around planets, since the two are easy to combine in their data format.</p>
+</section>
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">Setup</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(conflicted)</span>
+<span id="cb1-2"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(tidyverse)</span></code></pre></div></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+✔ dplyr     1.2.1     ✔ readr     2.2.0
+✔ forcats   1.0.1     ✔ stringr   1.6.0
+✔ ggplot2   4.0.3     ✔ tibble    3.3.1
+✔ lubridate 1.9.5     ✔ tidyr     1.3.2
+✔ purrr     1.2.2     </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(httr)</span>
+<span id="cb3-2"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(brms)</span></code></pre></div></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Caricamento del pacchetto richiesto: Rcpp
+Loading 'brms' package (version 2.23.0). Useful instructions
+can be found by typing help('brms'). A more detailed introduction
+to the package is available through vignette('brms_overview').</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(ggdist)</span>
+<span id="cb5-2"></span>
+<span id="cb5-3"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">conflicts_prefer</span>(dplyr<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span>filter,</span>
+<span id="cb5-4">                 brms<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span>ar,</span>
+<span id="cb5-5">                 brms<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span>dstudent_t,</span>
+<span id="cb5-6">                 brms<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span>pstudent_t,</span>
+<span id="cb5-7">                 brms<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span>qstudent_t,</span>
+<span id="cb5-8">                 brms<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span>rstudent_t,</span>
+<span id="cb5-9">                 stats<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span>lag)</span></code></pre></div></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[conflicted] Will prefer dplyr::filter over any other package.
+[conflicted] Will prefer brms::ar over any other package.
+[conflicted] Will prefer brms::dstudent_t over any other package.
+[conflicted] Will prefer brms::pstudent_t over any other package.
+[conflicted] Will prefer brms::qstudent_t over any other package.
+[conflicted] Will prefer brms::rstudent_t over any other package.
+[conflicted] Will prefer stats::lag over any other package.</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">theme_set</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">theme_minimal</span>())</span></code></pre></div></div>
+</div>
+</section>
+<section id="get-the-data" class="level2">
+<h2 class="anchored" data-anchor-id="get-the-data">Get the data</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#this is my key, stored locally. You can get your own, it's free</span></span>
+<span id="cb8-2">key <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">read_lines</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"apikey.txt"</span>)</span>
+<span id="cb8-3"></span>
+<span id="cb8-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#moon data</span></span>
+<span id="cb8-5">moons <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">GET</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"https://api.le-systeme-solaire.net/rest/bodies/"</span>, </span>
+<span id="cb8-6">           <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">add_headers</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Authorization =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">paste</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Bearer"</span>, key)),</span>
+<span id="cb8-7">           <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">query =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">filter[]</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span> <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"bodyType,eq,Moon"</span>)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb8-8">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">content</span>()</span>
+<span id="cb8-9"></span>
+<span id="cb8-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#planet data</span></span>
+<span id="cb8-11">planets <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">GET</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"https://api.le-systeme-solaire.net/rest/bodies/"</span>, </span>
+<span id="cb8-12">               <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">add_headers</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Authorization =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">paste</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Bearer"</span>, key)),</span>
+<span id="cb8-13">               <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">query =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">filter[]</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span> <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"bodyType,eq,Planet"</span>)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb8-14">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">content</span>()</span>
+<span id="cb8-15"></span>
+<span id="cb8-16">useful <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"id"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"englishName"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"semimajorAxis"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"mass"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"sideralOrbit"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"aroundPlanet"</span>)</span>
+<span id="cb8-17"></span>
+<span id="cb8-18"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#wrangle this ugly list into a nice tibble</span></span>
+<span id="cb8-19">planets <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> planets<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>bodies <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb8-20">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">map</span>(\(x) x <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb8-21">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#some elements are null, some are lists of length 2</span></span>
+<span id="cb8-22">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#as_tibble_row complains, that's why the gymnastics</span></span>
+<span id="cb8-23">        <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">discard</span>(is_null) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb8-24">        <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">enframe</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb8-25">        <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">pivot_wider</span>()) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb8-26">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#bind the planet rows into a tibble</span></span>
+<span id="cb8-27">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">bind_rows</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb8-28">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#keep only what's necessary</span></span>
+<span id="cb8-29">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">select</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">any_of</span>(useful)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb8-30">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#mass is in scientific notation across two fields</span></span>
+<span id="cb8-31">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">mass =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">map_dbl</span>(mass, \(x) x<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>massValue <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">^</span>x<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>massExponent)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb8-32">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#undo the list-cols created by enframe() |&gt; pivot_wider()</span></span>
+<span id="cb8-33">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">across</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">everything</span>(), unlist))</span>
+<span id="cb8-34"></span>
+<span id="cb8-35"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#same as above, but for moons</span></span>
+<span id="cb8-36">moons <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> moons<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>bodies <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb8-37">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">map</span>(\(x) x <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb8-38">        <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">discard</span>(is_null) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb8-39">        <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">enframe</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb8-40">        <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">pivot_wider</span>()) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb8-41">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">bind_rows</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb8-42">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">select</span>(id, englishName, semimajorAxis, mass, sideralOrbit, aroundPlanet) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb8-43">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#some moons have missing mass</span></span>
+<span id="cb8-44">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">drop_na</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb8-45">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">mass =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">map_dbl</span>(mass, \(x) x<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>massValue <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">^</span>x<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>massExponent),</span>
+<span id="cb8-46">         <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#just need the id of the planet</span></span>
+<span id="cb8-47">         <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">aroundPlanet =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">map</span>(aroundPlanet, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb8-48">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">across</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">everything</span>(), unlist)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb8-49">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#there are some bogus entries</span></span>
+<span id="cb8-50">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">filter</span>(sideralOrbit <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>)</span>
+<span id="cb8-51"></span>
+<span id="cb8-52"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#join planets to moons</span></span>
+<span id="cb8-53">data <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> moons <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb8-54">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">inner_join</span>(planets <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">select</span>(id, mass),</span>
+<span id="cb8-55">             <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">by =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">join_by</span>(aroundPlanet <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> id),</span>
+<span id="cb8-56">             <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">suffix =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"_s"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"_p"</span>)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb8-57">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(</span>
+<span id="cb8-58">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#only the sum of masses is identified in the equation</span></span>
+<span id="cb8-59">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">M =</span> mass_s <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> mass_p,</span>
+<span id="cb8-60">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#convert semi-major axis to meters</span></span>
+<span id="cb8-61">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">a =</span> semimajorAxis <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1000</span>,</span>
+<span id="cb8-62">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#convert sideral orbit to seconds</span></span>
+<span id="cb8-63">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#to be fancy, use a more accurate sideral day</span></span>
+<span id="cb8-64">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">T =</span> sideralOrbit <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">23.9344696</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3600</span>,</span>
+<span id="cb8-65">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#remind the value of pi to the model</span></span>
+<span id="cb8-66">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">pi =</span> pi)</span>
+<span id="cb8-67"></span>
+<span id="cb8-68">data</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 161 × 11
+   id       englishName semimajorAxis  mass_s sideralOrbit aroundPlanet  mass_p
+   &lt;chr&gt;    &lt;chr&gt;               &lt;int&gt;   &lt;dbl&gt;        &lt;dbl&gt; &lt;chr&gt;          &lt;dbl&gt;
+ 1 lune     Moon               384400 7.35e22       27.3   terre        5.97e24
+ 2 phobos   Phobos               9378 1.06e16        0.319 mars         6.42e23
+ 3 deimos   Deimos              23459 1.48e15        1.26  mars         6.42e23
+ 4 io       Io                 421800 8.93e22        1.77  jupiter      1.90e27
+ 5 europe   Europa             671100 4.80e22        3.55  jupiter      1.90e27
+ 6 ganymede Ganymede          1070400 1.48e23        7.15  jupiter      1.90e27
+ 7 callisto Callisto          1882700 1.08e23       16.7   jupiter      1.90e27
+ 8 amalthee Amalthea           181400 7.5 e18        0.498 jupiter      1.90e27
+ 9 himalia  Himalia          11461000 9.5 e18      251.    jupiter      1.90e27
+10 elara    Elara            11741000 8   e17      260.    jupiter      1.90e27
+# ℹ 151 more rows
+# ℹ 4 more variables: M &lt;dbl&gt;, a &lt;dbl&gt;, T &lt;dbl&gt;, pi &lt;dbl&gt;</code></pre>
+</div>
+</div>
+</section>
+<section id="fit-the-model" class="level2">
+<h2 class="anchored" data-anchor-id="fit-the-model">Fit the model</h2>
+<p>Since the data is literally on astronomical scales, I thought it wise to fit the model on a log10-transformed version of the equation. While this might take some of the nonlinear charm away, since a big product is transformed in a more familiar sum, we will see that the nonlinear formula will still let us specify the model in a way that would just break with a traditional model formula.</p>
+<p>The parameter to fit is G, but we still need some meaningful outcome on the LHS. I decided to solve for <img src="https://latex.codecogs.com/png.latex?%5Cwidehat%7BM%7D%20=%20M%20+m"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%5Cwidehat%7BM%7D=%5Cfrac%7B4%5Cpi%5E%7B2%7Da%5E%7B3%7D%7D%7BT%5E2G%7D"></p>
+<p>Then, taking the log10 of both sides</p>
+<p><img src="https://latex.codecogs.com/png.latex?%5Clog%20M%20=%20-%5Clog%20G+%5Clog4%5Cpi%5E2+3%5Clog%20a-2%5Clog%20T"></p>
+<p>This translates directly into the nonlinear formula. Unlike the usual model formulas, regression coefficients (what you multiply the sum terms with) are explicit, so any parameter must be specified with a unique name in the formula. This lets us say explicitly that the last two terms must be multiplied by 3 and 2, not with parameters estimated from the data. The parameter to estimate, <code>logG</code>, has its own intercept-only model.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1">formula <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">bf</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">log10</span>(M) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>logG <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">log10</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>pi<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">^</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">log10</span>(a) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">log10</span>(T),</span>
+<span id="cb10-2">              logG <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>,</span>
+<span id="cb10-3">              <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">nl =</span> T)</span></code></pre></div></div>
+</div>
+<p>Since I’m not an astronomer, I’ll pretend I have no domain knowledge outside “planets are big, and moons as well” and use default priors just this once. The model fits fine in case you’re worried.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">get_prior</span>(formula, data)</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                prior class      coef group resp dpar nlpar lb ub tag
+ student_t(3, 0, 2.5) sigma                                  0       
+               (flat)     b                            logG          
+               (flat)     b Intercept                  logG          
+       source
+      default
+      default
+ (vectorized)</code></pre>
+</div>
+</div>
+<p>Time to actually fit the model.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1">fit <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">brm</span>(formula, data, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">file =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"g_fit"</span>,</span>
+<span id="cb13-2">           <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">seed =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">950</span>)</span>
+<span id="cb13-3"></span>
+<span id="cb13-4">fit</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> Family: gaussian 
+  Links: mu = identity 
+Formula: log10(M) ~ -logG + log10(4 * pi^2) + 3 * log10(a) - 2 * log10(T) 
+         logG ~ 1
+   Data: data (Number of observations: 161) 
+  Draws: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+         total post-warmup draws = 4000
+
+Regression Coefficients:
+               Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+logG_Intercept   -10.17      0.00   -10.18   -10.17 1.00     4298     2409
+
+Further Distributional Parameters:
+      Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+sigma     0.03      0.00     0.02     0.03 1.00     1434     1724
+
+Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+and Tail_ESS are effective sample size measures, and Rhat is the potential
+scale reduction factor on split chains (at convergence, Rhat = 1).</code></pre>
+</div>
+</div>
+<p>How well did that go? Not so bad, considering all potential sources of error: almost as good as what had been derived from experiments 200 years ago, albeit with larger uncertainty.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1">g_draws <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> fit <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb15-2">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as_draws_df</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">variable =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"b_logG_Intercept"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb15-3">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">G =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">^</span>b_logG_Intercept)</span>
+<span id="cb15-4"></span>
+<span id="cb15-5">g_draws <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb15-6">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mean_qi</span>(G) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb15-7">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.data.frame</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb15-8">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">rel_uncertainty =</span> (.upper <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> .lower) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> G <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">100</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb15-9">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">print</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">digits =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>)</span></code></pre></div></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Dropping 'draws_df' class as required metadata was removed.
+Warning: Dropping 'draws_df' class as required metadata was removed.
+Warning: Dropping 'draws_df' class as required metadata was removed.</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                G          .lower          .upper .width .point .interval
+1 6.703552392e-11 6.642138375e-11 6.764462352e-11   0.95   mean        qi
+  rel_uncertainty
+1     1.824763506</code></pre>
+</div>
+</div>
+<p>The beauty of Bayesian models is in the posterior distributions, we can look at those:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1">g_draws <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb18-2">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ggplot</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">aes</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x =</span> G)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb18-3">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">stat_slab</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">aes</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">fill_ramp =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">after_stat</span>(level)),</span>
+<span id="cb18-4">                    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">.width =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(.<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">50</span>, .<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">80</span>, .<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">95</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>),</span>
+<span id="cb18-5">                    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">fill =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"mediumpurple"</span>,</span>
+<span id="cb18-6">            <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">show.legend =</span> F) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb18-7">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">geom_vline</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">xintercept =</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6.6743e-11</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">linetype =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb18-8">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">annotate</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"text"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x =</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6.7e-11</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">y =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">label =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"What the NIST says"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb18-9">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">scale_y_continuous</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">name =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NULL</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">breaks =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NULL</span>)</span></code></pre></div></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="https://lucianodebenedictis.github.io/blog/posts/gravity/index_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="generate-predictions" class="level2">
+<h2 class="anchored" data-anchor-id="generate-predictions">Generate predictions</h2>
+<p>While this is a fine demonstration of nonlinear <code>brms</code> models, at the beginning I mentioned facing the model with reality. To do this we can take the estimated value of G (with all its posterior distribution) and generate predictions on a separate dataset. In this case, I’ll predict the orbital period of planets around the sun using G, masses, and semi-major axes.</p>
+<p><img src="https://latex.codecogs.com/png.latex?T%20=%20%5Csqrt%7B%5Cfrac%7B4%5Cpi%5E%7B2%7Da%5E%7B3%7D%7D%7BG%5Cwidehat%7BM%7D%7D%7D"></p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1">planets <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> planets <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb19-2">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">arrange</span>(sideralOrbit) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb19-3">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(</span>
+<span id="cb19-4">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">englishName =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">fct</span>(englishName),</span>
+<span id="cb19-5">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#the mass of the sun in kg</span></span>
+<span id="cb19-6">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">mass_sun =</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.988475e30</span>,</span>
+<span id="cb19-7">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">M =</span> mass <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> mass_sun,</span>
+<span id="cb19-8">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#convert semi-major axis to meters</span></span>
+<span id="cb19-9">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">a =</span> semimajorAxis <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1000</span>,</span>
+<span id="cb19-10">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#convert sideral orbit to seconds</span></span>
+<span id="cb19-11">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">T =</span> sideralOrbit <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">23.9344696</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3600</span>,</span>
+<span id="cb19-12">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#remind the value of pi to the model</span></span>
+<span id="cb19-13">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">pi =</span> pi)</span>
+<span id="cb19-14"></span>
+<span id="cb19-15">planets_pred <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> planets <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb19-16">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">expand_grid</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">G =</span> g_draws<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>G) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb19-17">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Tpred =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sqrt</span>((<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>pi<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">^</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>a<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">^</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span>(G<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>M)))</span>
+<span id="cb19-18"></span>
+<span id="cb19-19">planets_pred <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb19-20">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ggplot</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb19-21">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">stat_pointinterval</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">aes</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">y =</span> Tpred)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb19-22">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">geom_hline</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">aes</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">yintercept =</span> T),</span>
+<span id="cb19-23">             <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">linetype =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>,</span>
+<span id="cb19-24">             <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">data =</span> planets) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb19-25">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">facet_wrap</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">vars</span>(englishName),</span>
+<span id="cb19-26">             <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">scales =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"free"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb19-27">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">scale_y_continuous</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">labels =</span> scales<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">label_scientific</span>()) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb19-28">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">labs</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NULL</span>,</span>
+<span id="cb19-29">       <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">y =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Orbital period (s)"</span>)</span></code></pre></div></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="https://lucianodebenedictis.github.io/blog/posts/gravity/index_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Not too bad!</p>
+
+
+
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent">
+<div id="ref-mcelreath2020" class="csl-entry">
+McElreath, Richard. 2020. <em>Statistical Rethinking: A Bayesian Course with Examples in r and STAN</em>. 2nd ed. Chapman; Hall/CRC. <a href="https://doi.org/10.1201/9780429029608">https://doi.org/10.1201/9780429029608</a>.
+</div>
+<div id="ref-meehl1967" class="csl-entry">
+Meehl, Paul E. 1967. <span>“Theory-Testing in Psychology and Physics: A Methodological Paradox.”</span> <em>Philosophy of Science</em> 34 (2): 103–15. <a href="https://doi.org/10.1086/288135">https://doi.org/10.1086/288135</a>.
+</div>
+</div></section></div> ]]></description>
+  <guid>https://lucianodebenedictis.github.io/blog/posts/gravity/</guid>
+  <pubDate>Tue, 04 Aug 2026 15:04:30 GMT</pubDate>
+</item>
 </channel>
 </rss>
