@@ -2,7 +2,10 @@
 title: "Fitting the gravitational constant with brms"
 date: 2026-08-04
 format: html
+df-print: kable
 bibliography: references.bib
+execute: 
+  warning: false
 ---
 
 > My experience with astronomy and astrophysics boils down to teenage curiosity. The main purpose of this example is as an exercise in `brms` nonlinear syntax. There are probably many tiny errors and things that could be done better.
@@ -37,6 +40,11 @@ conflicts_prefer(dplyr::filter,
                  brms::qstudent_t,
                  brms::rstudent_t,
                  stats::lag)
+
+#please use cmdstanr, it's so much faster
+options(cores = parallel::detectCores(),
+        brms.backend = "cmdstanr",
+        pillar.sigfig = 6)
 
 theme_set(theme_minimal())
 ```
@@ -111,7 +119,7 @@ data <- moons |>
     #remind the value of pi to the model
     pi = pi)
 
-data
+head(data)
 ```
 
 ## Fit the model
@@ -143,7 +151,7 @@ get_prior(formula, data)
 Time to actually fit the model.
 
 ```{r}
-fit <- brm(formula, data, seed = 950)
+fit <- brm(formula, data, seed = 950, silent = 2)
 
 fit
 ```
@@ -156,10 +164,9 @@ g_draws <- fit |>
   mutate(G = 10^b_logG_Intercept)
 
 g_draws |> 
-  mean_qi(G) |> 
-  as.data.frame() |>
+  mean_qi(G) |>
   mutate(rel_uncertainty = (.upper - .lower) / G *100) |> 
-  print(digits = 10)
+  print()
 ```
 
 The beauty of Bayesian models is in the posterior distributions, we can look at those:
