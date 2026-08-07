@@ -2,6 +2,9 @@
 title: "Starting a blog!"
 date: 2026-08-03
 format: html
+categories:
+  - welcome
+  - others
 ---
 
 Scientific debate currently revolves around papers, being the agreed upon way to make science, but they can’t be the only outlet for scholarly discussion. Post-publication review is still mostly theory, and post-publication is often severely lacking. Response articles exist, but usually you don’t want to go through months of peer review unless it’s something really big, and it seems more of a way to get into an academic fight than anything at times.

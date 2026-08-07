@@ -10,7 +10,2771 @@
 <atom:link href="https://lucianodebenedictis.github.io/blog/index.xml" rel="self" type="application/rss+xml"/>
 <description></description>
 <generator>quarto-1.9.38</generator>
-<lastBuildDate>Mon, 03 Aug 2026 22:00:00 GMT</lastBuildDate>
+<lastBuildDate>Fri, 07 Aug 2026 12:01:00 GMT</lastBuildDate>
+<item>
+  <title>Calculating Rao with R</title>
+  <dc:creator>Luciano L.M. De Benedictis</dc:creator>
+  <link>https://lucianodebenedictis.github.io/blog/posts/raoq/</link>
+  <description><![CDATA[ 
+
+
+
+
+
+
+<p>C. R. Rao lived more than 100 years and has been one of the greatest mathematicians and statisticians of the 20th century. Ecologists mostly know him for his quadratic entropy, which probably isn’t even one of <a href="https://www.nature.com/articles/d41586-023-03200-5">his greatest achievements</a>.</p>
+<p>Rao’s Quadratic Entropy (<span class="citation" data-cites="rao2010">Rao (2010)</span>, also called DIVC, <span class="citation" data-cites="rao1982">Rao (1982)</span>) is one of the oldest and most popular indices of functional diversity. It’s generically defined on probability distributions, but we often see what I like to call the multinomial form:</p>
+<p><img src="https://latex.codecogs.com/png.latex?Q%20=%20%5Csum_%7Bi%7D%5E%7BN%7D%5Csum_%7Bj%7D%5E%7BN%7Dd_%7Bij%7Dp_%7Bi%7Dp_%7Bj%7D"></p>
+<p>Call <em>i</em> and <em>j</em> two species out of <em>N</em>, <em>d</em> a distance between them, <em>p</em> their proportional abundances, and you have a way to calculate the average distance between two randomly drawn individuals (or more generally a weighted average distance).</p>
+<p>While this <img src="https://latex.codecogs.com/png.latex?%5Calpha"> diversity formula is well known, stopping there is also extremely reductive. Diversity partitioning across scales (something akin to <img src="https://latex.codecogs.com/png.latex?%5Cbeta">) has been there since the beginning, since the main goal always has been to develop a generalization of ANOVA. A unified theory tying this to other well known indices has always been there too, but today I won’t focus more on the theory, but rather on software implementations. If you want to learn more about the theory, a lot of work has been done in the last 40 years, and a lot of articles published: you can find an overview in <span class="citation" data-cites="debenedictis2026">De Benedictis et al. (2026)</span> and its <a href="https://ars.els-cdn.com/content/image/1-s2.0-S1470160X26000841-mmc3.pdf">Appendix C</a>.</p>
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">Setup</h2>
+<p>Just the bare minimum today.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(conflicted)</span>
+<span id="cb1-2"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(tidyverse)</span></code></pre></div></div>
+</div>
+</section>
+<section id="rao-functional-diversity" class="level2">
+<h2 class="anchored" data-anchor-id="rao-functional-diversity">Rao functional diversity</h2>
+<p>The example data is a snippet from the <a href="https://zenodo.org/records/17311232">data</a> of <span class="citation" data-cites="debenedictis2026">De Benedictis et al. (2026)</span>. This is a peculiar case, because it comes from a 1000-unit looping transect which has been resampled with overlap at several scales, so there are many sampling units, but each has few records because they come from beech forest understory. This is just one scale of one transect. For each sampling unit X, row represent observations of a species. When the sampling units are aggregates as in this case, these can be used to calculate frequencies.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Want to know how we got here? Check out the <a href="../../posts/tidyecology/index.html">twin post</a>!</p>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># load the preprocessed data</span></span>
+<span id="cb2-2">transect <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">read_rds</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"transect.rds"</span>)</span>
+<span id="cb2-3"></span>
+<span id="cb2-4">transect <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> transect <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb2-5">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#summarise records into species frequencies</span></span>
+<span id="cb2-6">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">count</span>(X, species) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb2-7">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># convert frequencies to proportions</span></span>
+<span id="cb2-8">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">prop =</span> n <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sum</span>(n), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">.by =</span> X) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb2-9">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">select</span>(<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span>n)</span>
+<span id="cb2-10"></span>
+<span id="cb2-11"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># convert data to a more traditional matrix</span></span>
+<span id="cb2-12">transect_mat <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> transect <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb2-13">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">pivot_wider</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">names_from =</span> species, </span>
+<span id="cb2-14">              <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">values_from =</span> prop,</span>
+<span id="cb2-15">              <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">values_fill =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb2-16">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">column_to_rownames</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"X"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb2-17">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.matrix</span>()</span>
+<span id="cb2-18"></span>
+<span id="cb2-19">transect</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1,601 × 3
+       X species                  prop
+   &lt;int&gt; &lt;chr&gt;                   &lt;dbl&gt;
+ 1   152 Rosa arvensis           1    
+ 2   153 Rosa arvensis           1    
+ 3   154 Rosa arvensis           1    
+ 4   155 Rosa arvensis           1    
+ 5   156 Rosa arvensis           1    
+ 6   157 Brachypodium sylvaticum 0.5  
+ 7   157 Rosa arvensis           0.5  
+ 8   158 Brachypodium sylvaticum 0.667
+ 9   158 Rosa arvensis           0.333
+10   159 Brachypodium sylvaticum 0.75 
+# ℹ 1,591 more rows</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># I have already done the work of gathering traits and calculate a distance matrix</span></span>
+<span id="cb4-2">distances <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">read_rds</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"dist.rds"</span>)</span>
+<span id="cb4-3"></span>
+<span id="cb4-4">distances[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>]</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                  Sanicula europaea Galium odoratum Melica uniflora
+Sanicula europaea         0.0000000       0.4859495       0.3095512
+Galium odoratum           0.4859495       0.0000000       0.3663165
+Melica uniflora           0.3095512       0.3663165       0.0000000</code></pre>
+</div>
+</div>
+</section>
+<section id="custom-function" class="level2">
+<h2 class="anchored" data-anchor-id="custom-function">Custom function</h2>
+<p>As the first solution, I wanted to share a function that it’s so simple it almost feels like it shouldn’t work. The actual calculation is just one line of matrix algebra, the part before is just to get <code>props</code> and <code>dist</code> to agree. In practice, I’d always specify <code>species</code>, because this also ensures proportions and distances are in the same order (assuming the proportions come from a dataframe with a matching species column). Credit to this <a href="https://gist.github.com/jslefche/09756ff84afc7b6a82ea0582e663d098">gist</a> by Jon Lefcheck, even if the idea floats around the internet.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1">raoq <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(props, dist, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">species =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NULL</span>){</span>
+<span id="cb6-2">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#subset species in the distance matrix if necessary</span></span>
+<span id="cb6-3">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span>(<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.null</span>(species)){</span>
+<span id="cb6-4">    dist <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> dist[species, species]</span>
+<span id="cb6-5">  }</span>
+<span id="cb6-6">  </span>
+<span id="cb6-7">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">crossprod</span>(props, dist <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%*%</span> props))</span>
+<span id="cb6-8">}</span></code></pre></div></div>
+</div>
+<p>Rao sums across all species pairs the distance between <em>i</em> and <em>j</em> multiplied by the proportions of <em>i</em> and <em>j</em> to calculate an average distance. Our distance matrix already has all species pairs (optionally some that are not present, which can be subset or assigned 0 proportions), so there’s no need to loop: we just apply the matrix cross-product twice.</p>
+<p>If you want, you could add a little check at the beginning if you want to take the species from the names of <code>props</code>, if present, but I prefer to be explicit with this sort of things.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.null</span>(species) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;&amp;</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.null</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">names</span>(props))) species <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">names</span>(props)</span></code></pre></div></div>
+</div>
+<section id="matrix-cross-products" class="level3">
+<h3 class="anchored" data-anchor-id="matrix-cross-products">Matrix cross products?</h3>
+<p>To get an intuition for what the cross-product does, the first pass takes the matrix, multiplies each column by the respective value in the vector, then sums the columns together.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1">mat <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">matrix</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">ncol =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">byrow =</span> T)</span>
+<span id="cb8-2">ab <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span></span>
+<span id="cb8-3"></span>
+<span id="cb8-4">mat</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     [,1] [,2] [,3]
+[1,]    1    2    3
+[2,]    4    5    6
+[3,]    7    8    9</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1">mat <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%*%</span> ab</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     [,1]
+[1,]   14
+[2,]   32
+[3,]   50</code></pre>
+</div>
+</div>
+<p>The second pass takes the resulting column matrix, transposes it to a row and repeats the process (so the row of values gets summed and you end up with a single value). The <code>c()</code> is just so that it’s not a 1 <img src="https://latex.codecogs.com/png.latex?%5Ctimes"> 1 matrix.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">crossprod</span>(ab, mat <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%*%</span> ab))</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 228</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#same as</span></span>
+<span id="cb14-2"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sum</span>(mat <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%*%</span> ab <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> ab)</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 228</code></pre>
+</div>
+</div>
+<p>You can double check the result with a less compact and probably slower version:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># multiply each row of mat by ab</span></span>
+<span id="cb16-2">step1 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sweep</span>(mat, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>, ab, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"*"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb16-3">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># sum columns together</span></span>
+<span id="cb16-4">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rowSums</span>()</span>
+<span id="cb16-5"></span>
+<span id="cb16-6"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sum</span>(step1 <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> ab)</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 228</code></pre>
+</div>
+</div>
+<p>Back to the example. One way we can iterate <code>raoq</code> across multiple samples is by nesting and mapping:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1">transect_nested <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> transect <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb18-2">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># nest, one tibble for each X</span></span>
+<span id="cb18-3">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">nest</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">.by =</span> X)</span>
+<span id="cb18-4"></span>
+<span id="cb18-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># calculate Rao!</span></span>
+<span id="cb18-6">transect_nested <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> transect_nested <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb18-7">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Rao =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">map_dbl</span>(data, \(x) <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">raoq</span>(x<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>prop, distances, x<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>species)))</span>
+<span id="cb18-8"></span>
+<span id="cb18-9">transect_nested</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 564 × 3
+       X data               Rao
+   &lt;int&gt; &lt;list&gt;           &lt;dbl&gt;
+ 1   152 &lt;tibble [1 × 2]&gt; 0    
+ 2   153 &lt;tibble [1 × 2]&gt; 0    
+ 3   154 &lt;tibble [1 × 2]&gt; 0    
+ 4   155 &lt;tibble [1 × 2]&gt; 0    
+ 5   156 &lt;tibble [1 × 2]&gt; 0    
+ 6   157 &lt;tibble [2 × 2]&gt; 0.384
+ 7   158 &lt;tibble [2 × 2]&gt; 0.341
+ 8   159 &lt;tibble [2 × 2]&gt; 0.288
+ 9   160 &lt;tibble [2 × 2]&gt; 0.341
+10   161 &lt;tibble [2 × 2]&gt; 0.360
+# ℹ 554 more rows</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="fd-ade4-and-adiv" class="level2">
+<h2 class="anchored" data-anchor-id="fd-ade4-and-adiv">FD, ade4, and adiv</h2>
+<p>How would one do this with usual packages? <code>FD::dbFD()</code> can calculate Rao, alongside many other things which can’t all be disabled (and take time to compute).</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># distance matrix must be dist and not contain extra species</span></span>
+<span id="cb20-2">dist_dbfd <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> distances[<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">colnames</span>(transect_mat), <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">colnames</span>(transect_mat)] <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb20-3">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.dist</span>()</span>
+<span id="cb20-4"></span>
+<span id="cb20-5">rao_dbfd <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> FD<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbFD</span>(</span>
+<span id="cb20-6">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#first argument could be either traits or a dist object</span></span>
+<span id="cb20-7">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x =</span> dist_dbfd,</span>
+<span id="cb20-8">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#abundance matrix</span></span>
+<span id="cb20-9">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">a =</span> transect_mat,</span>
+<span id="cb20-10">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">w.abun =</span> T,</span>
+<span id="cb20-11">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">calc.FRic =</span> F,</span>
+<span id="cb20-12">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">calc.FDiv =</span> F,</span>
+<span id="cb20-13">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">calc.CWM =</span> F,</span>
+<span id="cb20-14">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">messages =</span> F) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb20-15">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#just Rao, please</span></span>
+<span id="cb20-16">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">pluck</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"RaoQ"</span>)</span></code></pre></div></div>
+</div>
+<p>Under the hood, it calls <code>ade4::divc()</code>, which is a second option, just with a different data structure.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1">rao_ade4 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> ade4<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">divc</span>(</span>
+<span id="cb21-2">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#abundances should be a dataframe with species as ROWS</span></span>
+<span id="cb21-3">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.data.frame</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">t</span>(transect_mat)),</span>
+<span id="cb21-4">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#dist object above</span></span>
+<span id="cb21-5">  dist_dbfd,</span>
+<span id="cb21-6">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#the default for scale is F, but since it is undocumented better be explicit</span></span>
+<span id="cb21-7">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">scale =</span> F)</span></code></pre></div></div>
+</div>
+<p>Unsurprisingly, the two give the same result, but it is not the same as <code>raoq()</code>. Why?</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">all.equal</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">unname</span>(rao_dbfd), rao_ade4<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>diversity)</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">all.equal</span>(rao_ade4<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>diversity, transect_nested<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>Rao)</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Mean relative difference: 2.134283"</code></pre>
+</div>
+</div>
+<p>Inspecting the source, <code>divc()</code> does the same cross product trick, but column by column so it’s less efficient. Then, despite referencing <span class="citation" data-cites="rao1982">Rao (1982)</span>, it performs a slightly different calculation: the distance matrix is squared, and the column result is divided by two and divided again by the squared sum of abundances. Putting aside the squared sum thing (that part is just scaling the raw abundances/presences/frequencies into proportions after the fact), this is actually the “Euclidean diversity coefficient” of <span class="citation" data-cites="champely2002">Champely and Chessel (2002)</span>! The reasoning behind it is that if distance used is the Euclidean distance, this equals the variance of the trait distribution <a href="https://ars.els-cdn.com/content/image/1-s2.0-S1470160X26000841-mmc3.pdf">see Appendix C of my article</a>. This has been observed by <span class="citation" data-cites="debello2016">Bello et al. (2016)</span> too.</p>
+<p>The scaling part is not an issue, the documentation does say “abundance, presence-absence or frequencies as entries”, and if you feed proportions it’s harmless, but <code>divc()</code> does the distance transformation behind the scenes, only checking if the distance matrix is Euclidean, even if it’s not <strong>the</strong> Euclidean. If we take the guts of <code>divc</code>, remove some input checks, and change one line to remove the <img src="https://latex.codecogs.com/png.latex?%5CDelta%20=%20%5Cfrac%7Bd%5E%7B2%7D%7D%7B2%7D"> part to go back to the original Rao formula, we get something like this:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1">fakedivc <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span> (df, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">dis =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NULL</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">scale =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>) </span>
+<span id="cb26-2">{</span>
+<span id="cb26-3">  div <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.data.frame</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rep</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ncol</span>(df)))</span>
+<span id="cb26-4">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">names</span>(div) <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"diversity"</span></span>
+<span id="cb26-5">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rownames</span>(div) <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">names</span>(df)</span>
+<span id="cb26-6">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> (i <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ncol</span>(df)) {</span>
+<span id="cb26-7">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sum</span>(df[, i]) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1e-16</span>) </span>
+<span id="cb26-8">      div[i, ] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span></span>
+<span id="cb26-9">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> div[i, ] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> (<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">t</span>(df[, i]) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%*%</span> (<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.matrix</span>(dis)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%*%</span> df[, i])<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sum</span>(df[, i])<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">^</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>)</span>
+<span id="cb26-10">  }</span>
+<span id="cb26-11">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (scale <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>) {</span>
+<span id="cb26-12">    divmax <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">divcmax</span>(dis)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>value</span>
+<span id="cb26-13">    div <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> div<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span>divmax</span>
+<span id="cb26-14">  }</span>
+<span id="cb26-15">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">return</span>(div)</span>
+<span id="cb26-16">}</span></code></pre></div></div>
+</div>
+<p>And, sure enough, things match now.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1">rao_ade4_fake <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">fakedivc</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.data.frame</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">t</span>(transect_mat)),</span>
+<span id="cb27-2">                          dist_dbfd,</span>
+<span id="cb27-3">                          <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">scale =</span> F)</span>
+<span id="cb27-4"></span>
+<span id="cb27-5"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">all.equal</span>(rao_ade4_fake<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>diversity, transect_nested<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>Rao)</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+</div>
+<p><code>adiv::QE()</code> is basically the same as these two, down to the source code, but it does have the option to choose between quadratic entropy and Euclidean diversity index:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1">rao_adiv <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> adiv<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">QE</span>(transect_mat,</span>
+<span id="cb29-2">                     dist_dbfd,</span>
+<span id="cb29-3">                     <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"QE"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb29-4">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">pull</span>()</span>
+<span id="cb29-5"></span>
+<span id="cb29-6"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">all.equal</span>(rao_adiv, transect_nested<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>Rao)</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+</div>
+</section>
+<section id="fundiversity" class="level2">
+<h2 class="anchored" data-anchor-id="fundiversity">fundiversity</h2>
+<p>I agree, diversity is fun. This package seems cool, and the function <code>fd_raoq()</code> too. It can accept either traits or distances, has a nice helper to subset it and the community if the species don’t match, and uses the cross product under the hood. The results are the same as with <code>raoq()</code>:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1">rao_fun <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> fundiversity<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">fd_raoq</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">sp_com =</span> transect_mat,</span>
+<span id="cb31-2">                                 <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">dist_matrix =</span> distances) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb31-3">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">pluck</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Q"</span>)</span>
+<span id="cb31-4">  </span>
+<span id="cb31-5"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">all.equal</span>(rao_fun, transect_nested<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>Rao)</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+</div>
+</section>
+<section id="mfd" class="level2">
+<h2 class="anchored" data-anchor-id="mfd">mFD</h2>
+<p>This function is one of those that calculates generalizations of functional diversity. Being based on Hill numbers, what it returns is actually the equivalent number <img src="https://latex.codecogs.com/png.latex?E%20=%20%5Cfrac%7B1%7D%7B1-Q%7D"> but you only notice this if you pay attention to the cited literature and to the phrase “is equivalent to”, which doesn’t mean “equals”. Once we retransform the values, things add up.</p>
+<div class="callout callout-style-default callout-caution callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Caution
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>While this function supports both matrices and <code>dist</code> objects, I got different results using <code>dist_dbfd</code> from above. The reason is that the distance matrix is automatically scaled, whether you want it or not, and <code>dist_dbfd</code> is a subset of the full matrix. This is something to keep in mind, especially if you try to compare samples calculated with different distance matrices.</p>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1">rao_mfd <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> mFD<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">alpha.fd.hill</span>(transect_mat,</span>
+<span id="cb33-2">                              distances,</span>
+<span id="cb33-3">                              <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">q =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>,</span>
+<span id="cb33-4">                              <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">tau =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"max"</span>,</span>
+<span id="cb33-5">                              <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">details_returned =</span> F)</span>
+<span id="cb33-6"></span>
+<span id="cb33-7">rao_mfd <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> rao_mfd[, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]</span>
+<span id="cb33-8"></span>
+<span id="cb33-9"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">all.equal</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">unname</span>(rao_mfd), transect_nested<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>Rao)</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+</div>
+</section>
+<section id="hillr" class="level2">
+<h2 class="anchored" data-anchor-id="hillr">hillR</h2>
+<p>Another function that calculates Hill number generalizations of functional diversity. We can calculate Rao by setting <code>q = 2</code>. In theory, you can provide either traits, or a “symmetric distance matrix” with <code>traits_as_is</code>: this is a lie, it wants a <code>dist</code> instead. Works fine otherwise. Unlike <code>mFD()</code>, it provides both Rao and functional Hill numbers, so you can pick your favourite.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1">rao_hillr <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> hillR<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">hill_func</span>(transect_mat, dist_dbfd, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">traits_as_is =</span> T, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">q =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">fdis =</span> F)[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Q"</span>, ]</span>
+<span id="cb35-2"></span>
+<span id="cb35-3"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">all.equal</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">unname</span>(rao_hillr), transect_nested<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>Rao)</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+</div>
+</section>
+<section id="melodic" class="level2">
+<h2 class="anchored" data-anchor-id="melodic">Melodic</h2>
+<p>What if we look outside of CRAN? <span class="citation" data-cites="debello2016">Bello et al. (2016)</span> provide an R function called <code>melodic()</code> It’s a bit hidden inside the supplementary materials, and I had to tweak the checks in the first two lines because something must have changed with R in the last ten years: matrices seem to always have both class <code>"matrix"</code> and <code>"array"</code>, so the check gives an error. I changed it to use <code>inherits()</code>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><span class="do" style="color: #5E5E5E;
+background-color: null;
+font-style: italic;">##MEan DIssimilarity Components##</span></span>
+<span id="cb37-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#samp:  community matrix; sites in lines, species in columns</span></span>
+<span id="cb37-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#dis:   dissimilarity matrix</span></span>
+<span id="cb37-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#type:  "both" for results with abundances weighted and non-weighted</span></span>
+<span id="cb37-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#       "abundance" for results with abundances weighted</span></span>
+<span id="cb37-6"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#       "presence" for results with abundances non-weighted</span></span>
+<span id="cb37-7">  </span>
+<span id="cb37-8">melodic <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(samp,dis,<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">type=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"both"</span>){</span>
+<span id="cb37-9">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span>(<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">inherits</span>(samp, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"matrix"</span>)){samp <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.matrix</span>(samp)}</span>
+<span id="cb37-10">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span>(<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">inherits</span>(samp, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"matrix"</span>)){dis <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.matrix</span>(dis)}</span>
+<span id="cb37-11">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.null</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">colnames</span>(samp)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.null</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">colnames</span>(dis)) ){</span>
+<span id="cb37-12">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">stop</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Both samp and dis must have colnames.</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">\n</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb37-13">  }</span>
+<span id="cb37-14">  N<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dim</span>(samp)[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]</span>
+<span id="cb37-15">    melodic<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>()</span>
+<span id="cb37-16">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (type<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"both"</span>){</span>
+<span id="cb37-17">        melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>abundance<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>()</span>
+<span id="cb37-18">        melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>abundance<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>mpd<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span>melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>abundance<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>rao<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span>melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>abundance<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>simpson<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">numeric</span>(N)</span>
+<span id="cb37-19">        melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>presence<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>()</span>
+<span id="cb37-20">        melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>presence<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>mpd<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span>melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>presence<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>rao<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span>melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>presence<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>simpson<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">numeric</span>(N)</span>
+<span id="cb37-21">    }</span>
+<span id="cb37-22">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (type<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"abundance"</span>){ </span>
+<span id="cb37-23">        melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>abundance<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>()</span>
+<span id="cb37-24">        melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>abundance<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>mpd<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span>melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>abundance<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>rao<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span>melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>abundance<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>simpson<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">numeric</span>(N)</span>
+<span id="cb37-25">    }</span>
+<span id="cb37-26">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (type<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"presence"</span>){ </span>
+<span id="cb37-27">        melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>presence<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>()</span>
+<span id="cb37-28">        melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>presence<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>mpd<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span>melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>presence<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>rao<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span>melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>presence<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>simpson<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">numeric</span>(N)</span>
+<span id="cb37-29">    }</span>
+<span id="cb37-30">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> (i <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span>N){</span>
+<span id="cb37-31">        sppInSample<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">names</span>(samp[i,samp[i, ]<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>])</span>
+<span id="cb37-32">        melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>richness[i]<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rowSums</span>(samp<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>)[i]</span>
+<span id="cb37-33">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">length</span>(sppInSample)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>){</span>
+<span id="cb37-34">            sample.dis<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span>dis[sppInSample,sppInSample]</span>
+<span id="cb37-35">            abund.w<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">numeric</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">length</span>(sppInSample))</span>
+<span id="cb37-36">            <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (type<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"both"</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|</span> type<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"abundance"</span>){</span>
+<span id="cb37-37">                abund.w <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> samp[i , sppInSample] <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sum</span>(samp[i , sppInSample])</span>
+<span id="cb37-38">                sample.weights <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">outer</span>(abund.w , abund.w)</span>
+<span id="cb37-39">                melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>abundance<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>mpd[i] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">weighted.mean</span>(sample.dis[<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">lower.tri</span>(sample.dis)] , sample.weights[<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">lower.tri</span>(sample.weights)])</span>
+<span id="cb37-40">                melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>abundance<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>rao[i] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sum</span>(sample.weights <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> sample.dis)</span>
+<span id="cb37-41">                melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>abundance<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>simpson[i] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sum</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>sample.weights[<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">lower.tri</span>(sample.weights)])</span>
+<span id="cb37-42">            }   </span>
+<span id="cb37-43">            <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (type<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"both"</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|</span> type<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"presence"</span>){</span>
+<span id="cb37-44">                abund.nw <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rep</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> , <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">length</span>(sppInSample)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">length</span>(sppInSample)</span>
+<span id="cb37-45">                sample.weights <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">outer</span>(abund.nw , abund.nw)</span>
+<span id="cb37-46">                melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>presence<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>mpd[i] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">weighted.mean</span>(sample.dis[<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">lower.tri</span>(sample.dis)] , sample.weights[<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">lower.tri</span>(sample.weights)])</span>
+<span id="cb37-47">                melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>presence<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>rao[i] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sum</span>(sample.weights <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> sample.dis)</span>
+<span id="cb37-48">                melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>presence<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>simpson[i] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sum</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>sample.weights[<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">lower.tri</span>(sample.weights)])</span>
+<span id="cb37-49">            }   </span>
+<span id="cb37-50">        }   <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> {</span>
+<span id="cb37-51">            <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (type<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"both"</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|</span> type<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"abundance"</span>){</span>
+<span id="cb37-52">                melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>abundance<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>mpd[i] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NA</span></span>
+<span id="cb37-53">                melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>abundance<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>rao[i] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>abundance<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>simpson[i] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span></span>
+<span id="cb37-54">            }</span>
+<span id="cb37-55">            <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (type<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"both"</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|</span> type<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"presence"</span>){</span>
+<span id="cb37-56">                melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>presence<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>mpd[i] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NA</span></span>
+<span id="cb37-57">                melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>presence<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>rao[i] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> melodic<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>presence<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>simpson[i] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span></span>
+<span id="cb37-58">            }</span>
+<span id="cb37-59">        }</span>
+<span id="cb37-60">    }   </span>
+<span id="cb37-61">    out<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span>melodic</span>
+<span id="cb37-62">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">return</span>(out) </span>
+<span id="cb37-63">}</span></code></pre></div></div>
+</div>
+<p>This function is alright: a bit more complex than <code>raoq()</code> and it doesn’t use the cool cross products, opting for a loop instead. You might find the extra output it gives useful. If we focus on Rao, it works as expected:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1">rao_mel <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">melodic</span>(transect_mat, distances, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"abundance"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb38-2">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">pluck</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"abundance"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"rao"</span>)</span>
+<span id="cb38-3"></span>
+<span id="cb38-4"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">all.equal</span>(rao_mel, transect_nested<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>Rao)</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+</div>
+</section>
+<section id="performance-comparison" class="level2">
+<h2 class="anchored" data-anchor-id="performance-comparison">Performance comparison</h2>
+<p>The authors of <code>fundiversity</code> seem to care about performance, since they did an overview of available packages and benchmarked them together. One thing I noticed about <code>fd_raoq()</code> is that it calculates Rao even with pairs of abundance vectors from different communities. That could be useful as a first step to calculate the original Rao dissimilarity, but here they are just discarded. How will it perform against the others?</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1">dist_subset <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.matrix</span>(dist_dbfd)</span>
+<span id="cb40-2"></span>
+<span id="cb40-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#suppressMessages is so that FD would shut up</span></span>
+<span id="cb40-4">bench <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> bench<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mark</span>(</span>
+<span id="cb40-5">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">raoq_map =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">map_dbl</span>(transect_nested<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>data, \(x) <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">raoq</span>(x<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>prop, distances, x<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>species)),</span>
+<span id="cb40-6">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">raoq_mat =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">apply</span>(transect_mat, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(x) <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">raoq</span>(x, dist_subset)),</span>
+<span id="cb40-7">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">FD =</span> FD<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbFD</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x =</span> dist_dbfd,</span>
+<span id="cb40-8">           <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">a =</span> transect_mat,</span>
+<span id="cb40-9">           <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">w.abun =</span> T,</span>
+<span id="cb40-10">           <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">calc.FRic =</span> F,</span>
+<span id="cb40-11">           <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">calc.FDiv =</span> F,</span>
+<span id="cb40-12">           <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">calc.CWM =</span> F,</span>
+<span id="cb40-13">           <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">messages =</span> F),</span>
+<span id="cb40-14">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">ade4 =</span> ade4<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">divc</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.data.frame</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">t</span>(transect_mat)),</span>
+<span id="cb40-15">             dist_dbfd,</span>
+<span id="cb40-16">             <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">scale =</span> F),</span>
+<span id="cb40-17">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">adiv =</span> adiv<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">QE</span>(transect_mat, dist_dbfd, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"QE"</span>),</span>
+<span id="cb40-18">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">fundiversity =</span> fundiversity<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">fd_raoq</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">sp_com =</span> transect_mat, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">dist_matrix =</span> distances),</span>
+<span id="cb40-19">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">mFD =</span> mFD<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">alpha.fd.hill</span>(transect_mat, distances, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">q =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">tau =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"max"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">details_returned =</span> F),</span>
+<span id="cb40-20">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">hillR =</span> hillR<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">hill_func</span>(transect_mat, dist_dbfd, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">traits_as_is =</span> T, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">q =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">fdis =</span> F),</span>
+<span id="cb40-21">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">melodic =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">melodic</span>(transect_mat, distances, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"abundance"</span>),</span>
+<span id="cb40-22">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">check =</span> F) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb40-23">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">arrange</span>(median)</span>
+<span id="cb40-24"></span>
+<span id="cb40-25">bench</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 9 × 6
+  expression        min   median `itr/sec` mem_alloc `gc/sec`
+  &lt;bch:expr&gt;   &lt;bch:tm&gt; &lt;bch:tm&gt;     &lt;dbl&gt; &lt;bch:byt&gt;    &lt;dbl&gt;
+1 fundiversity   1.21ms   1.77ms    476.      2.68MB    37.6 
+2 raoq_mat       1.88ms   2.01ms    467.     62.89KB     4.00
+3 raoq_map       3.98ms   4.41ms    139.     44.14KB     3.96
+4 hillR          9.26ms   9.98ms     94.8      276KB     3.95
+5 mFD            22.7ms  23.19ms     42.1   451.85KB     1.91
+6 adiv          24.63ms  25.52ms     37.4     3.25MB     3.94
+7 melodic       37.07ms  41.47ms     23.8    14.93MB     9.92
+8 ade4           63.6ms  66.31ms     15.0     3.37MB     1.87
+9 FD           856.57ms 856.57ms      1.17    5.86MB     2.33</code></pre>
+</div>
+</div>
+<p><code>fd_raoq()</code> still wins, with <code>raoq()</code> close behind! This is the power of primitve matrix operations: even when computing N<sup>2</sup> indices instead of N, this is still faster if you can do it with matrix products instead of row by row. This holds true even when the distance matrix is subset beforehand, instead of each iteration (raoq_map).</p>
+<p>Learning from this and taking up the challenge, can we make <code>raoq()</code> <em>fast</em>? Since the trick is to use only matrix operations, we turn to the community matrix, instead of iterating over single vectors of proportions. This has the advantage that we don’t need to have a separate <code>species</code> argument, we can just use column names as everyone else. Turns out we don’t need to do the big N<sup>2</sup> cross product, we can do something similar to what I did when explaining the double cross product by just doing multiplication followed by summing columns. We can have our cake and eat it too, or as they say in Italy, you can have a full cask and a drunk wife (I’m not a fan of cake, wine, or sexist sayings either):</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1">raoq_fast <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(com, dist){</span>
+<span id="cb42-2">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#subset species in the distance matrix if necessary</span></span>
+<span id="cb42-3">  species <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">colnames</span>(com)</span>
+<span id="cb42-4">  dist <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> dist[species, species]</span>
+<span id="cb42-5">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#it's called rowSums because it sums together columns by row</span></span>
+<span id="cb42-6">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rowSums</span>((com <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%*%</span> dist) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> com)</span>
+<span id="cb42-7">}</span>
+<span id="cb42-8"></span>
+<span id="cb42-9">rao_raoqfast <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">raoq_fast</span>(transect_mat, distances)</span>
+<span id="cb42-10"></span>
+<span id="cb42-11"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">all.equal</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">unname</span>(rao_raoqfast), rao_fun)</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1">rebench <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> bench<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mark</span>(</span>
+<span id="cb44-2">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">raoq_fast =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">unname</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">raoq_fast</span>(transect_mat, distances)),</span>
+<span id="cb44-3">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">fd_raoq =</span> fundiversity<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">fd_raoq</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">sp_com =</span> transect_mat, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">dist_matrix =</span> distances),</span>
+<span id="cb44-4">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">check =</span> F) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb44-5">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">arrange</span>(median)</span>
+<span id="cb44-6"></span>
+<span id="cb44-7">rebench</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 6
+  expression      min   median `itr/sec` mem_alloc `gc/sec`
+  &lt;bch:expr&gt; &lt;bch:tm&gt; &lt;bch:tm&gt;     &lt;dbl&gt; &lt;bch:byt&gt;    &lt;dbl&gt;
+1 raoq_fast      41µs  44.91µs    19487.  113.94KB     47.0
+2 fd_raoq       1.2ms   1.27ms      620.    2.68MB     53.2</code></pre>
+</div>
+</div>
+<p>Well well! About 40 to 50 times faster than <code>fd_raoq()</code>!</p>
+</section>
+<section id="conclusions" class="level2">
+<h2 class="anchored" data-anchor-id="conclusions">Conclusions</h2>
+<p>In practice, the speed differences are irrelevant, except maybe for <code>dbFD</code>(because it calculates a bunch of other things). Since <code>FD</code>, <code>ade4</code> and <code>adiv</code> calculate their own version of Rao, I would use either my functions, <code>adiv</code>, <code>fundiversity</code>, or <code>melodic</code>. If you’re into Hill numbers, the <code>mFD</code> and <code>hillR</code> packages are interesting, but you can always transform Rao yourself if you stick with <em>q</em> = 2. Between my two functions, I would probably still use the slower one, because iterating explicitly gives me more control over the output format. Another thing of note is whether the functions require you to subset the distance matrix beforehand or they take care of it themselves, and whether they want a matrix or a <code>dist</code>. I consider functions that can take a matrix and can subset or rearrange it more robust, and those would be <code>raoq()</code>(either one), <code>fd_raoq()</code>, <code>alpha.fd.hill()</code>, and <code>melodic()</code>.</p>
+<p>I hope this is useful to someone. The first thought when having to calculate an index might be “oh, I’ll just grab a package that does it”, but we have seen how things are not as simple as that in this case. This is not meant to be a comprehensive overview, but to include many popular solutions as well as providing some interesting alternatives.</p>
+</section>
+<section id="extra-decomposition" class="level2">
+<h2 class="anchored" data-anchor-id="extra-decomposition">Extra: decomposition</h2>
+<p>I mentioned at the beginning that the <img src="https://latex.codecogs.com/png.latex?%5Calpha"> formula is just a small part of what you can do, and you can go further with a nested decomposition in the style of <img src="https://latex.codecogs.com/png.latex?%5Calpha,%5Cbeta,%5Cgamma">.</p>
+<p>To give you a taste of that, I’ll share a function I made for <span class="citation" data-cites="debenedictis2026">De Benedictis et al. (2026)</span> which calculates a bunch of Rao-based indices. Compared to the original, I changed the input format to the classical community matrix, <code>raoq()</code> with the updated version with name matching (instead of factors, <em>ugh</em>), and the internal data format to the convention “species on columns, samples on rows”. The indices are described in <span class="citation" data-cites="debello2010">De Bello et al. (2010)</span> and <span class="citation" data-cites="pavoine2024">Pavoine and Ricotta (2024)</span>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb46" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1">qdecomp <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(data, distances){</span>
+<span id="cb46-2">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#alpha Q</span></span>
+<span id="cb46-3">  alpha <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">apply</span>(data, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(x) <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">raoq</span>(x, distances, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">names</span>(x))) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb46-4">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mean</span>()</span>
+<span id="cb46-5">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#regional relative abundances as mean of local ab.</span></span>
+<span id="cb46-6">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#this gives equal weight to each community</span></span>
+<span id="cb46-7">  P_i <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">colMeans</span>(data)</span>
+<span id="cb46-8">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#gamma Q</span></span>
+<span id="cb46-9">  gamma <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">raoq</span>(P_i, distances, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">names</span>(P_i))</span>
+<span id="cb46-10">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#additive beta</span></span>
+<span id="cb46-11">  beta_add <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> gamma <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> alpha</span>
+<span id="cb46-12">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#additive beta normalized by gamma</span></span>
+<span id="cb46-13">  beta_rel <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> beta_add <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> gamma</span>
+<span id="cb46-14">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#equivalent alpha</span></span>
+<span id="cb46-15">  E_alpha <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>alpha)</span>
+<span id="cb46-16">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#equivalent gamma</span></span>
+<span id="cb46-17">  E_gamma <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>gamma)</span>
+<span id="cb46-18">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#multiplicative eq. beta</span></span>
+<span id="cb46-19">  E_beta_mult <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> E_gamma <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> E_alpha</span>
+<span id="cb46-20">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#additive eq. beta</span></span>
+<span id="cb46-21">  E_beta_add <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> E_gamma <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> E_alpha</span>
+<span id="cb46-22">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#proportional additive beta, normalized on sample n</span></span>
+<span id="cb46-23">  E_beta_add_prop_norm <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> (E_beta_add <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> E_gamma) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> (<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">nrow</span>(data))</span>
+<span id="cb46-24">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#matrix of taxonomic distances (0/1)</span></span>
+<span id="cb46-25">  taxon <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> distances</span>
+<span id="cb46-26">  taxon[,] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span></span>
+<span id="cb46-27">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">diag</span>(taxon) <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span></span>
+<span id="cb46-28">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#taxonomic alpha</span></span>
+<span id="cb46-29">  alpha_sp <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">apply</span>(data, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(x) <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">raoq</span>(x, taxon, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">names</span>(x))) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb46-30">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mean</span>()</span>
+<span id="cb46-31">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#taxonomic gamma</span></span>
+<span id="cb46-32">  gamma_sp <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">raoq</span>(P_i, taxon, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">names</span>(P_i))</span>
+<span id="cb46-33">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#additive tax. beta</span></span>
+<span id="cb46-34">  beta_sp_add <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> gamma_sp <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> alpha_sp</span>
+<span id="cb46-35">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#normalized tax. beta</span></span>
+<span id="cb46-36">  beta_sp_rel <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> beta_sp_add <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> gamma_sp</span>
+<span id="cb46-37">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#equivalent tax. alpha</span></span>
+<span id="cb46-38">  E_alpha_sp <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>alpha_sp)</span>
+<span id="cb46-39">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#equivalent tax. gamma</span></span>
+<span id="cb46-40">  E_gamma_sp <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>gamma_sp)</span>
+<span id="cb46-41">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#equivalent tax. beta</span></span>
+<span id="cb46-42">  E_beta_sp <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> E_gamma_sp <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> E_alpha_sp</span>
+<span id="cb46-43">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#beta Q clustering</span></span>
+<span id="cb46-44">  clustering <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> beta_rel <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> beta_sp_rel</span>
+<span id="cb46-45">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#gamma Q uniqueness</span></span>
+<span id="cb46-46">  uniqueness <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> gamma <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> gamma_sp</span>
+<span id="cb46-47">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#gamma E uniqueness</span></span>
+<span id="cb46-48">  U_gamma_star <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> E_gamma <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> E_gamma_sp</span>
+<span id="cb46-49">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#alpha E redundancy, inverse of Ualpha_star</span></span>
+<span id="cb46-50">  redundancy_a <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> E_alpha_sp <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> E_alpha</span>
+<span id="cb46-51">  </span>
+<span id="cb46-52">  output <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">data.frame</span>(alpha, gamma, beta_add, beta_rel,</span>
+<span id="cb46-53">                       E_alpha, E_gamma, E_beta_mult, E_beta_add,</span>
+<span id="cb46-54">                       E_beta_add_prop_norm, clustering, uniqueness,</span>
+<span id="cb46-55">                       alpha_sp, gamma_sp, U_gamma_star, redundancy_a,</span>
+<span id="cb46-56">                       beta_sp_add, E_alpha_sp, E_gamma_sp, E_beta_sp)</span>
+<span id="cb46-57">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">return</span>(output)</span>
+<span id="cb46-58">}</span></code></pre></div></div>
+</div>
+<p>How does that look, applied to the data?</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">qdecomp</span>(transect_mat, distances) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb47-2">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">glimpse</span>()</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 1
+Columns: 19
+$ alpha                &lt;dbl&gt; 0.2412185
+$ gamma                &lt;dbl&gt; 0.4228523
+$ beta_add             &lt;dbl&gt; 0.1816339
+$ beta_rel             &lt;dbl&gt; 0.4295444
+$ E_alpha              &lt;dbl&gt; 1.317902
+$ E_gamma              &lt;dbl&gt; 1.732659
+$ E_beta_mult          &lt;dbl&gt; 1.31471
+$ E_beta_add           &lt;dbl&gt; 0.4147564
+$ E_beta_add_prop_norm &lt;dbl&gt; 0.2398009
+$ clustering           &lt;dbl&gt; 0.9526582
+$ uniqueness           &lt;dbl&gt; 0.5636274
+$ alpha_sp             &lt;dbl&gt; 0.4119606
+$ gamma_sp             &lt;dbl&gt; 0.7502337
+$ U_gamma_star         &lt;dbl&gt; 0.4327597
+$ redundancy_a         &lt;dbl&gt; 1.290358
+$ beta_sp_add          &lt;dbl&gt; 0.3382732
+$ E_alpha_sp           &lt;dbl&gt; 1.700566
+$ E_gamma_sp           &lt;dbl&gt; 4.003743
+$ E_beta_sp            &lt;dbl&gt; 2.354359</code></pre>
+</div>
+</div>
+<p>As far as I know, most of the indices above have not yet been implemented in a package. The alternative would be following the <a href="https://doi.org/10.6084/m9.figshare.25342990">script</a> of <span class="citation" data-cites="pavoine2024">Pavoine and Ricotta (2024)</span>.</p>
+
+
+
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent">
+<div id="ref-debello2016" class="csl-entry">
+Bello, Francesco de, Carlos P. Carmona, Jan Lepš, Robert Szava-Kovats, and Meelis Pärtel. 2016. <span>“Functional Diversity Through the Mean Trait Dissimilarity: Resolving Shortcomings with Existing Paradigms and Algorithms.”</span> <em>Oecologia</em> 180 (4): 933–40. <a href="https://doi.org/10.1007/s00442-016-3546-0">https://doi.org/10.1007/s00442-016-3546-0</a>.
+</div>
+<div id="ref-champely2002" class="csl-entry">
+Champely, Stephane, and Daniel Chessel. 2002. <span>“Measuring Biological Diversity Using Euclidean Metrics.”</span> <em>Environmental and Ecological Statistics</em> 9 (2): 167–77. <a href="https://doi.org/10.1023/A:1015170104476">https://doi.org/10.1023/A:1015170104476</a>.
+</div>
+<div id="ref-debello2010" class="csl-entry">
+De Bello, Francesco, Sébastien Lavergne, Christine N. Meynard, Jan Lepš, and Wilfried Thuiller. 2010. <span>“The Partitioning of Diversity: Showing Theseus a Way Out of the Labyrinth.”</span> <em>Journal of Vegetation Science</em> 21 (5): 992–1000. <a href="https://doi.org/10.1111/j.1654-1103.2010.01195.x">https://doi.org/10.1111/j.1654-1103.2010.01195.x</a>.
+</div>
+<div id="ref-debenedictis2026" class="csl-entry">
+De Benedictis, Luciano Ludovico Maria, Stefano Chelli, Zhengxue Zhu, et al. 2026. <span>“Forest Structure and Understory Functional Diversity at Multiple Scales: The Importance of Median Tree Height.”</span> <em>Ecological Indicators</em> 183 (February): 114687. <a href="https://doi.org/10.1016/j.ecolind.2026.114687">https://doi.org/10.1016/j.ecolind.2026.114687</a>.
+</div>
+<div id="ref-pavoine2024" class="csl-entry">
+Pavoine, Sandrine, and Carlo Ricotta. 2024. <span>“Functional and Phylogenetic β Diversities and Their Link with Clustering/Overdispersion and Uniqueness/Redundancy.”</span> <em>Ecosphere</em> 15 (11): e70045. <a href="https://doi.org/10.1002/ecs2.70045">https://doi.org/10.1002/ecs2.70045</a>.
+</div>
+<div id="ref-rao2010" class="csl-entry">
+Rao, C. R. 2010. <span>“Quadratic Entropy and Analysis of Diversity.”</span> <em>Sankhya A</em> 72 (1): 70–80. <a href="https://doi.org/10.1007/s13171-010-0016-3">https://doi.org/10.1007/s13171-010-0016-3</a>.
+</div>
+<div id="ref-rao1982" class="csl-entry">
+Rao, C. Radhakrishna. 1982. <span>“Diversity and Dissimilarity Coefficients: A Unified Approach.”</span> <em>Theoretical Population Biology</em> 21 (1): 24–43. <a href="https://doi.org/10.1016/0040-5809(82)90004-1">https://doi.org/10.1016/0040-5809(82)90004-1</a>.
+</div>
+</div></section></div> ]]></description>
+  <category>ecology</category>
+  <category>R</category>
+  <category>traits</category>
+  <guid>https://lucianodebenedictis.github.io/blog/posts/raoq/</guid>
+  <pubDate>Fri, 07 Aug 2026 12:01:00 GMT</pubDate>
+</item>
+<item>
+  <title>Tidy ecology with R</title>
+  <dc:creator>Luciano L.M. De Benedictis</dc:creator>
+  <link>https://lucianodebenedictis.github.io/blog/posts/tidyecology/</link>
+  <description><![CDATA[ 
+
+
+
+
+
+
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>This post and <a href="../../posts/raoq/index.html">its twin</a> were conceived together. In my mind, the two topics are tightly linked, but a tangent about different software implementations of a diversity index grew so large that it deserved its own post. If you’re interested in both, you can read that one after this.</p>
+</div>
+</div>
+<p>There is a tradition in ecology to represent community data in a “community matrix” <span class="citation" data-cites="legendre2012">(Legendre and Legendre 2012)</span>. This what we can call a “wide” format, with species on columns and samples on rows. I prefer this convention to having them the other way around, since we can treat species as “variables” and samples as “observations”.</p>
+<p>The popular package <a href="https://cran.r-project.org/web/packages/vegan/index.html">vegan</a> interprets this literally as matrix objects. Matrices in R have nice uses, for example if you want to exploit matrix algebra for the fastest calculations, but they are raw and ugly to print and view, definitely not what you would want for general data analysis. The package <a href="https://github.com/pefrens/tidyvegan/tree/master">tidyvegan</a> seems to share this sentiment, adapting the most useful functions in the package to the use of tibbles and the pipe-friendly “data as first argument” convention.</p>
+<p>The thing is, community data is often awfully sparse. Wouldn’t it be nice to work in a long format? That has often been my preference, so I’ll show you how to reconcile the two worlds without too much pain. <em>Spoiler:</em> this mostly involves the use of <code>pivot_wider()</code> and <code>pivot_longer()</code>, but I think the practical examples and some added details make this worth sharing.</p>
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">Setup</h2>
+<p>Just loading some packages.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(conflicted)</span>
+<span id="cb1-2"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(tidyverse)</span>
+<span id="cb1-3"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(vegan)</span></code></pre></div></div>
+</div>
+</section>
+<section id="example-1-pairwise-dissimilarities" class="level2">
+<h2 class="anchored" data-anchor-id="example-1-pairwise-dissimilarities">Example 1: pairwise dissimilarities</h2>
+<p>The following example uses a small, cleaned-up subset of the <a href="https://zenodo.org/records/18710555">data</a> in <span class="citation" data-cites="cervellini2026">Cervellini et al. (2026)</span>. Several observers have recorded species cover in the same sampling unit (this is just one sampling unit and one exercise):</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1">training <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">read_rds</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tidyveg_ex1.rds"</span>)</span>
+<span id="cb2-2"></span>
+<span id="cb2-3">training</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 175 × 3
+   observer species           cover
+   &lt;chr&gt;    &lt;chr&gt;             &lt;dbl&gt;
+ 1 a        Ruscus aculeatus   10  
+ 2 a        Hedera helix        2  
+ 3 a        Melica uniflora     0.1
+ 4 a        Rubia peregrina     0.5
+ 5 a        Cyclamen repandum   1  
+ 6 a        Quercus cerris      0.1
+ 7 B        Lonicera etrusca    0.1
+ 8 B        Cyclamen repandum   0.5
+ 9 B        Melica uniflora     0.5
+10 B        Hedera helix        1  
+# ℹ 165 more rows</code></pre>
+</div>
+</div>
+<p>This long tibble is nice: you can easily calculate observer species richness, filter out rows, transform the percent cover; it’s not the format <code>vegdist()</code> wants to see though. You could just pivot the tibble and feed it to the function, this actually works because <code>vegdist()</code> silently converts it to a matrix:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1">plain1 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> training <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb4-2">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">pivot_wider</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">names_from =</span> species, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">values_from =</span> cover, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">values_fill =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb4-3">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">column_to_rownames</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"observer"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb4-4">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># default Bray-Curtis (Steinhaus, Motyka, Odum, percentage difference or however you want to call it) </span></span>
+<span id="cb4-5">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">vegdist</span>()</span>
+<span id="cb4-6"></span>
+<span id="cb4-7">plain1</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>           a          B          c          d          E          f          g
+B 0.37628866                                                                  
+c 0.50035386 0.23443019                                                       
+d 0.59124088 0.34743202 0.20819602                                            
+E 0.35370685 0.16987591 0.21955096 0.34746573                                 
+f 0.59479222 0.36860827 0.26540951 0.11345394 0.36791126                      
+g 0.30291698 0.51232302 0.53798227 0.58219431 0.34083045 0.63436203           
+h 0.42393205 0.24168773 0.21192294 0.32967522 0.12320200 0.41688501 0.42443485
+i 0.43859649 0.11675741 0.16246709 0.29105047 0.15499675 0.37092432 0.47615241
+l 0.49898692 0.31496423 0.17263279 0.27286082 0.30997911 0.34016393 0.55771024
+m 0.63031423 0.44891717 0.39170183 0.23830963 0.46952856 0.14808081 0.67762308
+n 0.44652206 0.18074160 0.07150635 0.23863131 0.20249740 0.24658331 0.52344740
+o 0.31958128 0.22515953 0.25679376 0.38076152 0.08411677 0.41259199 0.34318039
+p 0.40981938 0.12837705 0.24051565 0.33743067 0.16105820 0.36128273 0.47115136
+q 0.32626326 0.23101703 0.29649309 0.40094181 0.13450000 0.43125309 0.36942675
+           h          i          l          m          n          o          p
+B                                                                             
+c                                                                             
+d                                                                             
+E                                                                             
+f                                                                             
+g                                                                             
+h                                                                             
+i 0.17394726                                                                  
+l 0.26001195 0.29563614                                                       
+m 0.49541948 0.46770217 0.32832750                                            
+n 0.28706864 0.19449902 0.21701493 0.36657033                                 
+o 0.16958546 0.18881442 0.37072596 0.52446625 0.26178358                      
+p 0.20639199 0.15928144 0.28549849 0.41123541 0.18454441 0.21694075           
+q 0.21011412 0.22333722 0.39847328 0.52607014 0.26021890 0.05654281 0.21946782</code></pre>
+</div>
+</div>
+<p>There are some issues with this. First of all, <code>vegan</code> really likes to use row and column names to identify the pairs. There’s not much choice with matrices, but maybe in the original data you have a separate identifier column. If you want that to be transferred, you need to transform it into row names. Tibbles hate row names so much that as soon as I call that second function the data stops being a tibble and becomes a plain dataframe. The documentation in <code>?tibble::rownames</code> explains this stance convincingly: row names are just a character variable, but much more volatile (you can lose it from one operation to the next) and with a special treatment. If you want a character variable, make a column for it.</p>
+<p>The second issue is with the output format. I really think the <code>dist</code> class is an ugly and error-prone convention started by base R. What you get from the above looks like a matrix (more specifically, the lower triangle), but is in fact a weird dressed-up vector. The same is true even if you set <code>diag = TRUE</code> and <code>upper = TRUE</code> in <code>vegdist()</code>, even if the printed output looks identical to a matrix.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1">plain2 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> training <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb6-2">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">pivot_wider</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">names_from =</span> species, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">values_from =</span> cover, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">values_fill =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb6-3">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">column_to_rownames</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"observer"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb6-4">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">vegdist</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">diag =</span> T, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">upper =</span> T)</span>
+<span id="cb6-5"></span>
+<span id="cb6-6">plain2</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>           a          B          c          d          E          f          g
+a 0.00000000 0.37628866 0.50035386 0.59124088 0.35370685 0.59479222 0.30291698
+B 0.37628866 0.00000000 0.23443019 0.34743202 0.16987591 0.36860827 0.51232302
+c 0.50035386 0.23443019 0.00000000 0.20819602 0.21955096 0.26540951 0.53798227
+d 0.59124088 0.34743202 0.20819602 0.00000000 0.34746573 0.11345394 0.58219431
+E 0.35370685 0.16987591 0.21955096 0.34746573 0.00000000 0.36791126 0.34083045
+f 0.59479222 0.36860827 0.26540951 0.11345394 0.36791126 0.00000000 0.63436203
+g 0.30291698 0.51232302 0.53798227 0.58219431 0.34083045 0.63436203 0.00000000
+h 0.42393205 0.24168773 0.21192294 0.32967522 0.12320200 0.41688501 0.42443485
+i 0.43859649 0.11675741 0.16246709 0.29105047 0.15499675 0.37092432 0.47615241
+l 0.49898692 0.31496423 0.17263279 0.27286082 0.30997911 0.34016393 0.55771024
+m 0.63031423 0.44891717 0.39170183 0.23830963 0.46952856 0.14808081 0.67762308
+n 0.44652206 0.18074160 0.07150635 0.23863131 0.20249740 0.24658331 0.52344740
+o 0.31958128 0.22515953 0.25679376 0.38076152 0.08411677 0.41259199 0.34318039
+p 0.40981938 0.12837705 0.24051565 0.33743067 0.16105820 0.36128273 0.47115136
+q 0.32626326 0.23101703 0.29649309 0.40094181 0.13450000 0.43125309 0.36942675
+           h          i          l          m          n          o          p
+a 0.42393205 0.43859649 0.49898692 0.63031423 0.44652206 0.31958128 0.40981938
+B 0.24168773 0.11675741 0.31496423 0.44891717 0.18074160 0.22515953 0.12837705
+c 0.21192294 0.16246709 0.17263279 0.39170183 0.07150635 0.25679376 0.24051565
+d 0.32967522 0.29105047 0.27286082 0.23830963 0.23863131 0.38076152 0.33743067
+E 0.12320200 0.15499675 0.30997911 0.46952856 0.20249740 0.08411677 0.16105820
+f 0.41688501 0.37092432 0.34016393 0.14808081 0.24658331 0.41259199 0.36128273
+g 0.42443485 0.47615241 0.55771024 0.67762308 0.52344740 0.34318039 0.47115136
+h 0.00000000 0.17394726 0.26001195 0.49541948 0.28706864 0.16958546 0.20639199
+i 0.17394726 0.00000000 0.29563614 0.46770217 0.19449902 0.18881442 0.15928144
+l 0.26001195 0.29563614 0.00000000 0.32832750 0.21701493 0.37072596 0.28549849
+m 0.49541948 0.46770217 0.32832750 0.00000000 0.36657033 0.52446625 0.41123541
+n 0.28706864 0.19449902 0.21701493 0.36657033 0.00000000 0.26178358 0.18454441
+o 0.16958546 0.18881442 0.37072596 0.52446625 0.26178358 0.00000000 0.21694075
+p 0.20639199 0.15928144 0.28549849 0.41123541 0.18454441 0.21694075 0.00000000
+q 0.21011412 0.22333722 0.39847328 0.52607014 0.26021890 0.05654281 0.21946782
+           q
+a 0.32626326
+B 0.23101703
+c 0.29649309
+d 0.40094181
+E 0.13450000
+f 0.43125309
+g 0.36942675
+h 0.21011412
+i 0.22333722
+l 0.39847328
+m 0.52607014
+n 0.26021890
+o 0.05654281
+p 0.21946782
+q 0.00000000</code></pre>
+</div>
+</div>
+<p>This gets especially confusing when you try to do normal matrix operations like subsetting, since the underlying object is one-dimensional:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">try</span>(plain2[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>])</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Error in plain2[1, 1] : incorrect number of dimensions</code></pre>
+</div>
+</div>
+<p>I think it’s best to call <code>as.matrix()</code> right away and work with the full symmetrical matrix, then handle it as needed.</p>
+<p>Finally, maybe I would like to let <code>stats</code> and <code>vegan</code> enjoy their matrices and look at the output in a tibble instead. Let’s say we want to use those distance values as data in a model, as we did in the paper above. To do all this behind the scenes, I made two helper functions, which I have now adapted for more general use:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1">vegan_cook <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(x, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">species_col =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"species"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">value_col =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"cover"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">sample_name =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NULL</span>){</span>
+<span id="cb10-2">  </span>
+<span id="cb10-3">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.null</span>(sample_name)) sample_name <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">setdiff</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">names</span>(x), <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(species_col, value_col))</span>
+<span id="cb10-4">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">length</span>(sample_name) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>) <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">stop</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Please provide a unique identifier column for samples"</span>)</span>
+<span id="cb10-5">  </span>
+<span id="cb10-6">  x <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb10-7">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">pivot_wider</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">names_from =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">all_of</span>(species_col), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">values_from =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">all_of</span>(value_col), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">values_fill =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb10-8">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">column_to_rownames</span>(sample_name) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb10-9">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.matrix</span>()</span>
+<span id="cb10-10">}</span>
+<span id="cb10-11"></span>
+<span id="cb10-12">tidyvegdist <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(x, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">sample_names =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"sample"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">diag =</span> F, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">tri =</span> F, ...){</span>
+<span id="cb10-13">  </span>
+<span id="cb10-14">  <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">length</span>(sample_names) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>) sample_names <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">str_c</span>(sample_names, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">sep =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"_"</span>)</span>
+<span id="cb10-15">  </span>
+<span id="cb10-16">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">vegdist</span>(x, ...) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb10-17">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.matrix</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb10-18">    (\(m) {<span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (tri) m[<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">upper.tri</span>(m, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">diag =</span> F)] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NA</span>; m})() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb10-19">    (\(m) {<span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> (<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span>diag) <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">diag</span>(m) <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NA</span>; m})() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb10-20">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as_tibble</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">rownames =</span> sample_names[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb10-21">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">pivot_longer</span>(<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">all_of</span>(sample_names[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">names_to =</span> sample_names[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>]) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb10-22">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">drop_na</span>()</span>
+<span id="cb10-23">}</span></code></pre></div></div>
+</div>
+<p><code>vegan_cook()</code> handles the forward transformation into a <code>vegan</code> matrix. You can specify the names of the columns to pivot from with <code>species_col</code> and <code>value_col</code>. The row (sample) name columns is gathered automatically from the remaining column, or can be specified manually. <code>tidyvegdist()</code> calls <code>vegdist()</code> and returns a long tibble. You can choose how to call the columns with the pair names, either with an atomic string, which gets suffixes, or with a character vector. It defaults to <code>"sample"</code>; you can choose to include the diagonal values (usually 0) with <code>diag</code>, or to get a triangular matrix instead of the full symmetric matrix with <code>tri</code>; finally, you can pass other arguments to <code>vegdist()</code>, such as <code>method</code>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1">training <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb11-2">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">vegan_cook</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb11-3">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tidyvegdist</span>()</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 210 × 3
+   sample_1 sample_2 value
+   &lt;chr&gt;    &lt;chr&gt;    &lt;dbl&gt;
+ 1 a        B        0.376
+ 2 a        c        0.500
+ 3 a        d        0.591
+ 4 a        E        0.354
+ 5 a        f        0.595
+ 6 a        g        0.303
+ 7 a        h        0.424
+ 8 a        i        0.439
+ 9 a        l        0.499
+10 a        m        0.630
+# ℹ 200 more rows</code></pre>
+</div>
+</div>
+</section>
+<section id="example-2-transect-data" class="level2">
+<h2 class="anchored" data-anchor-id="example-2-transect-data">Example 2: transect data</h2>
+<p>The second example is a snippet from the <a href="https://zenodo.org/records/17311232">data</a> of <span class="citation" data-cites="debenedictis2026">De Benedictis et al. (2026)</span>. This is a peculiar case, because it comes from a 1000-unit looping transect which has been resampled with overlap at several scales, so there are many sampling units, but each has few records because they come from beech forest understory. This is just one scale of one transect. For each sampling unit X, row represent observations of a species. When the sampling units are aggregates as in this case, these can be used to calculate frequencies.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1">transect <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">read_rds</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tidyveg_ex2.rds"</span>)</span>
+<span id="cb13-2"></span>
+<span id="cb13-3">transect</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 7,200 × 2
+       X species                
+   &lt;int&gt; &lt;chr&gt;                  
+ 1   152 Rosa arvensis          
+ 2   153 Rosa arvensis          
+ 3   154 Rosa arvensis          
+ 4   155 Rosa arvensis          
+ 5   156 Rosa arvensis          
+ 6   157 Rosa arvensis          
+ 7   157 Brachypodium sylvaticum
+ 8   158 Rosa arvensis          
+ 9   158 Brachypodium sylvaticum
+10   158 Brachypodium sylvaticum
+# ℹ 7,190 more rows</code></pre>
+</div>
+</div>
+<p>There are 7200 observations, and so rows. What would happen if we had this data in a wide format?</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1">too_wide <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> transect <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb15-2">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">presence =</span> T) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb15-3">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">pivot_wider</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">names_from =</span> species, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">values_from =</span> presence, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">values_fn =</span> length)</span>
+<span id="cb15-4"></span>
+<span id="cb15-5"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">glimpse</span>(too_wide)</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 564
+Columns: 11
+$ X                         &lt;int&gt; 152, 153, 154, 155, 156, 157, 158, 159, 160,…
+$ `Rosa arvensis`           &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 4, 4, 4, 4, 5,…
+$ `Brachypodium sylvaticum` &lt;int&gt; NA, NA, NA, NA, NA, 1, 2, 3, 4, 5, 6, 7, 8, …
+$ `Daphne laureola`         &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+$ `Festuca heterophylla`    &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+$ `Aremonia agrimonoides`   &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+$ `Clinopodium nepeta`      &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+$ `Dactylis glomerata`      &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+$ `Luzula forsteri`         &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+$ `Lactuca muralis`         &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
+$ `Hieracium murorum`       &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …</code></pre>
+</div>
+</div>
+<p>I warned you the data were sparse! Out of 5640 values, 4039 are <code>NA</code>. And we’re lucky because only the 10 species recorded in this transect are listed.</p>
+<p>And that’s not even fair to the long format, because this has already aggregated frequency counts in the rows. We can do the same with the long tibble:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1">transect <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> transect <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb17-2">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">count</span>(X, species)</span>
+<span id="cb17-3"></span>
+<span id="cb17-4">transect</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1,601 × 3
+       X species                     n
+   &lt;int&gt; &lt;chr&gt;                   &lt;int&gt;
+ 1   152 Rosa arvensis               1
+ 2   153 Rosa arvensis               1
+ 3   154 Rosa arvensis               1
+ 4   155 Rosa arvensis               1
+ 5   156 Rosa arvensis               1
+ 6   157 Brachypodium sylvaticum     1
+ 7   157 Rosa arvensis               1
+ 8   158 Brachypodium sylvaticum     2
+ 9   158 Rosa arvensis               1
+10   159 Brachypodium sylvaticum     3
+# ℹ 1,591 more rows</code></pre>
+</div>
+</div>
+<p>Aside from this cosmetic difference, what can we do with the long format? We can join some traits or other information for example, and keep it neatly along the records.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1">traits <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">read_rds</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"traits.rds"</span>)</span>
+<span id="cb19-2"></span>
+<span id="cb19-3">transect <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb19-4">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">left_join</span>(traits)</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1,601 × 13
+       X species              n leaf_area_mm2 nmass_mg_g lma_g_m2 plant_height_m
+   &lt;int&gt; &lt;chr&gt;            &lt;int&gt;         &lt;dbl&gt;      &lt;dbl&gt;    &lt;dbl&gt;          &lt;dbl&gt;
+ 1   152 Rosa arvensis        1          302.       24.3     45.4          1.16 
+ 2   153 Rosa arvensis        1          302.       24.3     45.4          1.16 
+ 3   154 Rosa arvensis        1          302.       24.3     45.4          1.16 
+ 4   155 Rosa arvensis        1          302.       24.3     45.4          1.16 
+ 5   156 Rosa arvensis        1          302.       24.3     45.4          1.16 
+ 6   157 Brachypodium sy…     1         2195.       21.6     23.1          0.662
+ 7   157 Rosa arvensis        1          302.       24.3     45.4          1.16 
+ 8   158 Brachypodium sy…     2         2195.       21.6     23.1          0.662
+ 9   158 Rosa arvensis        1          302.       24.3     45.4          1.16 
+10   159 Brachypodium sy…     3         2195.       21.6     23.1          0.662
+# ℹ 1,591 more rows
+# ℹ 6 more variables: diaspore_mass_mg &lt;dbl&gt;, ssd_combined_mg_mm3 &lt;dbl&gt;,
+#   BBRsize &lt;dbl&gt;, persistence &lt;dbl&gt;, offspring &lt;dbl&gt;, spread &lt;dbl&gt;</code></pre>
+</div>
+</div>
+<p>Or we can easily convert frequencies to proportions:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1">transect <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb21-2">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">prop =</span> n <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sum</span>(n), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">.by =</span> X)</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1,601 × 4
+       X species                     n  prop
+   &lt;int&gt; &lt;chr&gt;                   &lt;int&gt; &lt;dbl&gt;
+ 1   152 Rosa arvensis               1 1    
+ 2   153 Rosa arvensis               1 1    
+ 3   154 Rosa arvensis               1 1    
+ 4   155 Rosa arvensis               1 1    
+ 5   156 Rosa arvensis               1 1    
+ 6   157 Brachypodium sylvaticum     1 0.5  
+ 7   157 Rosa arvensis               1 0.5  
+ 8   158 Brachypodium sylvaticum     2 0.667
+ 9   158 Rosa arvensis               1 0.333
+10   159 Brachypodium sylvaticum     3 0.75 
+# ℹ 1,591 more rows</code></pre>
+</div>
+</div>
+<p>How would you do that with the wide format? Well, for the traits I’m not sure where I would fit them, but for the proportions you need a rowwise operation, which isn’t usually as easy:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1">too_wide <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> too_wide <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb23-2">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># you can avoid this step by using values_fill in pivot_wider, but I wanted to count the NAs</span></span>
+<span id="cb23-3">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">across</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">everything</span>(), \(x) <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">replace_na</span>(x, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>)))</span>
+<span id="cb23-4"></span>
+<span id="cb23-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># rowwise is usually a sign that you're doing something wrong. Also, this is slow</span></span>
+<span id="cb23-6">too_wide <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb23-7">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rowwise</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb23-8">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">across</span>(<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span>X, \(x) x <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sum</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c_across</span>(<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span>X))))</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 564 × 11
+       X `Rosa arvensis` `Brachypodium sylvaticum` `Daphne laureola`
+   &lt;int&gt;           &lt;dbl&gt;                     &lt;dbl&gt;             &lt;dbl&gt;
+ 1   152           1                         0                     0
+ 2   153           1                         0                     0
+ 3   154           1                         0                     0
+ 4   155           1                         0                     0
+ 5   156           1                         0                     0
+ 6   157           0.5                       0.5                   0
+ 7   158           0.333                     0.667                 0
+ 8   159           0.25                      0.75                  0
+ 9   160           0.333                     0.667                 0
+10   161           0.375                     0.625                 0
+# ℹ 554 more rows
+# ℹ 7 more variables: `Festuca heterophylla` &lt;dbl&gt;,
+#   `Aremonia agrimonoides` &lt;dbl&gt;, `Clinopodium nepeta` &lt;dbl&gt;,
+#   `Dactylis glomerata` &lt;dbl&gt;, `Luzula forsteri` &lt;dbl&gt;,
+#   `Lactuca muralis` &lt;dbl&gt;, `Hieracium murorum` &lt;dbl&gt;</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># since we're doing this, might as well give up and convert to matrix</span></span>
+<span id="cb25-2">too_wide <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb25-3">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">column_to_rownames</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"X"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb25-4">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.matrix</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb25-5">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">proportions</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">margin =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> </span>
+<span id="cb25-6">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">head</span>()</span></code></pre></div></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    Rosa arvensis Brachypodium sylvaticum Daphne laureola Festuca heterophylla
+152           1.0                     0.0               0                    0
+153           1.0                     0.0               0                    0
+154           1.0                     0.0               0                    0
+155           1.0                     0.0               0                    0
+156           1.0                     0.0               0                    0
+157           0.5                     0.5               0                    0
+    Aremonia agrimonoides Clinopodium nepeta Dactylis glomerata Luzula forsteri
+152                     0                  0                  0               0
+153                     0                  0                  0               0
+154                     0                  0                  0               0
+155                     0                  0                  0               0
+156                     0                  0                  0               0
+157                     0                  0                  0               0
+    Lactuca muralis Hieracium murorum
+152               0                 0
+153               0                 0
+154               0                 0
+155               0                 0
+156               0                 0
+157               0                 0</code></pre>
+</div>
+</div>
+<p>Or we could calculate <a href="../../posts/raoq/index.html">Rao’s quadratic entropy</a>!</p>
+
+
+
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent">
+<div id="ref-cervellini2026" class="csl-entry">
+Cervellini, Marco, Luciano Ludovico Maria De Benedictis, Leonardo Salvatori, et al. 2026. <span>“Training and Intercalibration Reduce Observer-Induced Variability in Forest Vegetation Surveys.”</span> <em>Vegetation Ecology and Diversity</em> 63 (May): e189819. <a href="https://doi.org/10.3897/ved.189819">https://doi.org/10.3897/ved.189819</a>.
+</div>
+<div id="ref-debenedictis2026" class="csl-entry">
+De Benedictis, Luciano Ludovico Maria, Stefano Chelli, Zhengxue Zhu, et al. 2026. <span>“Forest Structure and Understory Functional Diversity at Multiple Scales: The Importance of Median Tree Height.”</span> <em>Ecological Indicators</em> 183 (February): 114687. <a href="https://doi.org/10.1016/j.ecolind.2026.114687">https://doi.org/10.1016/j.ecolind.2026.114687</a>.
+</div>
+<div id="ref-legendre2012" class="csl-entry">
+Legendre, Pierre, and Louis Legendre. 2012. <em>Numerical Ecology</em>. Elsevier.
+</div>
+</div></section></div> ]]></description>
+  <category>ecology</category>
+  <category>R</category>
+  <guid>https://lucianodebenedictis.github.io/blog/posts/tidyecology/</guid>
+  <pubDate>Fri, 07 Aug 2026 12:00:00 GMT</pubDate>
+</item>
 <item>
   <title>Fitting the gravitational constant with brms</title>
   <dc:creator>Luciano L.M. De Benedictis</dc:creator>
@@ -1380,6 +4144,9 @@ McElreath, Richard. 2020. <em>Statistical Rethinking: A Bayesian Course with Exa
 Meehl, Paul E. 1967. <span>“Theory-Testing in Psychology and Physics: A Methodological Paradox.”</span> <em>Philosophy of Science</em> 34 (2): 103–15. <a href="https://doi.org/10.1086/288135">https://doi.org/10.1086/288135</a>.
 </div>
 </div></section></div> ]]></description>
+  <category>stats</category>
+  <category>brms</category>
+  <category>R</category>
   <guid>https://lucianodebenedictis.github.io/blog/posts/gravity/</guid>
   <pubDate>Mon, 03 Aug 2026 22:00:00 GMT</pubDate>
 </item>
@@ -1403,6 +4170,8 @@ Meehl, Paul E. 1967. <span>“Theory-Testing in Psychology and Physics: A Method
 
 
  ]]></description>
+  <category>welcome</category>
+  <category>others</category>
   <guid>https://lucianodebenedictis.github.io/blog/posts/starting/</guid>
   <pubDate>Sun, 02 Aug 2026 22:00:00 GMT</pubDate>
 </item>

@@ -2,6 +2,8 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/raoq/index.html",
+      "/posts/tidyecology/index.html",
       "/posts/gravity/index.html",
       "/posts/starting/index.html"
     ]

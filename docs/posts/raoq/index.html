@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.38">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Luciano L.M. De Benedictis">
+
+<title>Calculating Rao with R – Luciano’s blog</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-0a6b7249c26820e032cb0bd839ff02b1.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-f9da83f35c8a9777c3928170ebd7038e.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-dark-b82a8e178c632e86601320a4062c3b24.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../../site_libs/bootstrap/bootstrap-f9da83f35c8a9777c3928170ebd7038e.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../../styles.css">
+<meta property="og:title" content="Calculating Rao with R – Luciano’s blog">
+<meta property="og:description" content="">
+<meta property="og:site_name" content="Luciano’s blog">
+</head>
+
+<body class="floating nav-fixed quarto-light"><script id="quarto-html-before-body" type="application/javascript">
+    const toggleBodyColorMode = (bsSheetEl) => {
+      const mode = bsSheetEl.getAttribute("data-mode");
+      const bodyEl = window.document.querySelector("body");
+      if (mode === "dark") {
+        bodyEl.classList.add("quarto-dark");
+        bodyEl.classList.remove("quarto-light");
+      } else {
+        bodyEl.classList.add("quarto-light");
+        bodyEl.classList.remove("quarto-dark");
+      }
+    }
+    const toggleBodyColorPrimary = () => {
+      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
+      if (bsSheetEl) {
+        toggleBodyColorMode(bsSheetEl);
+      }
+    }
+    const setColorSchemeToggle = (alternate) => {
+      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+      for (let i=0; i < toggles.length; i++) {
+        const toggle = toggles[i];
+        if (toggle) {
+          if (alternate) {
+            toggle.classList.add("alternate");
+          } else {
+            toggle.classList.remove("alternate");
+          }
+        }
+      }
+    };
+    const toggleColorMode = (alternate) => {
+      // Switch the stylesheets
+      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
+      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+      manageTransitions('#quarto-margin-sidebar .nav-link', false);
+      if (alternate) {
+        // note: dark is layered on light, we don't disable primary!
+        enableStylesheet(alternateStylesheets);
+        for (const sheetNode of alternateStylesheets) {
+          if (sheetNode.id === "quarto-bootstrap") {
+            toggleBodyColorMode(sheetNode);
+          }
+        }
+      } else {
+        disableStylesheet(alternateStylesheets);
+        enableStylesheet(primaryStylesheets)
+        toggleBodyColorPrimary();
+      }
+      manageTransitions('#quarto-margin-sidebar .nav-link', true);
+      // Switch the toggles
+      setColorSchemeToggle(alternate)
+      // Hack to workaround the fact that safari doesn't
+      // properly recolor the scrollbar when toggling (#1455)
+      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+        manageTransitions("body", false);
+        window.scrollTo(0, 1);
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          manageTransitions("body", true);
+        }, 40);
+      }
+    }
+    const disableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        stylesheet.rel = 'disabled-stylesheet';
+      }
+    }
+    const enableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
+          stylesheet.rel = 'stylesheet';
+        }
+      }
+    }
+    const manageTransitions = (selector, allowTransitions) => {
+      const els = window.document.querySelectorAll(selector);
+      for (let i=0; i < els.length; i++) {
+        const el = els[i];
+        if (allowTransitions) {
+          el.classList.remove('notransition');
+        } else {
+          el.classList.add('notransition');
+        }
+      }
+    }
+    const isFileUrl = () => {
+      return window.location.protocol === 'file:';
+    }
+    const hasAlternateSentinel = () => {
+      let styleSentinel = getColorSchemeSentinel();
+      if (styleSentinel !== null) {
+        return styleSentinel === "alternate";
+      } else {
+        return false;
+      }
+    }
+    const setStyleSentinel = (alternate) => {
+      const value = alternate ? "alternate" : "default";
+      if (!isFileUrl()) {
+        window.localStorage.setItem("quarto-color-scheme", value);
+      } else {
+        localAlternateSentinel = value;
+      }
+    }
+    const getColorSchemeSentinel = () => {
+      if (!isFileUrl()) {
+        const storageValue = window.localStorage.getItem("quarto-color-scheme");
+        return storageValue != null ? storageValue : localAlternateSentinel;
+      } else {
+        return localAlternateSentinel;
+      }
+    }
+    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+      let newTheme = '';
+      if(authorPrefersDark) {
+        newTheme = isAlternate ? baseTheme : alternateTheme;
+      } else {
+        newTheme = isAlternate ? alternateTheme : baseTheme;
+      }
+      const changeGiscusTheme = () => {
+        // From: https://github.com/giscus/giscus/issues/336
+        const sendMessage = (message) => {
+          const iframe = document.querySelector('iframe.giscus-frame');
+          if (!iframe) return;
+          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+        }
+        sendMessage({
+          setConfig: {
+            theme: newTheme
+          }
+        });
+      }
+      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+      if (isGiscussLoaded) {
+        changeGiscusTheme();
+      }
+    };
+    const authorPrefersDark = false;
+    const darkModeDefault = authorPrefersDark;
+      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+    // Dark / light mode switch
+    window.quartoToggleColorScheme = () => {
+      // Read the current dark / light value
+      let toAlternate = !hasAlternateSentinel();
+      toggleColorMode(toAlternate);
+      setStyleSentinel(toAlternate);
+      toggleGiscusIfUsed(toAlternate, darkModeDefault);
+      window.dispatchEvent(new Event('resize'));
+    };
+    // Switch to dark mode if need be
+    if (hasAlternateSentinel()) {
+      toggleColorMode(true);
+    } else {
+      toggleColorMode(false);
+    }
+  </script>
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top quarto-banner">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">Luciano’s blog</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../resources.html"> 
+<span class="menu-text">Resources</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html"> 
+<span class="menu-text">About</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="https://bentfishbowl.wixsite.com/electronics"> 
+<span class="menu-text">Electronics</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="../../index.xml"> <i class="bi bi-rss" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/LucianoDeBenedictis/blog"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<header id="title-block-header" class="quarto-title-block default toc-left page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">Calculating Rao with R</h1>
+                                <div class="quarto-categories">
+                <div class="quarto-category">ecology</div>
+                <div class="quarto-category">R</div>
+                <div class="quarto-category">traits</div>
+              </div>
+                  </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      <div>
+      <div class="quarto-title-meta-heading">Author</div>
+      <div class="quarto-title-meta-contents">
+               <p>Luciano L.M. De Benedictis </p>
+            </div>
+    </div>
+      
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">7 Aug 2026</p>
+      </div>
+    </div>
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#setup" id="toc-setup" class="nav-link active" data-scroll-target="#setup">Setup</a></li>
+  <li><a href="#rao-functional-diversity" id="toc-rao-functional-diversity" class="nav-link" data-scroll-target="#rao-functional-diversity">Rao functional diversity</a></li>
+  <li><a href="#custom-function" id="toc-custom-function" class="nav-link" data-scroll-target="#custom-function">Custom function</a>
+  <ul class="collapse">
+  <li><a href="#matrix-cross-products" id="toc-matrix-cross-products" class="nav-link" data-scroll-target="#matrix-cross-products">Matrix cross products?</a></li>
+  </ul></li>
+  <li><a href="#fd-ade4-and-adiv" id="toc-fd-ade4-and-adiv" class="nav-link" data-scroll-target="#fd-ade4-and-adiv">FD, ade4, and adiv</a></li>
+  <li><a href="#fundiversity" id="toc-fundiversity" class="nav-link" data-scroll-target="#fundiversity">fundiversity</a></li>
+  <li><a href="#mfd" id="toc-mfd" class="nav-link" data-scroll-target="#mfd">mFD</a></li>
+  <li><a href="#hillr" id="toc-hillr" class="nav-link" data-scroll-target="#hillr">hillR</a></li>
+  <li><a href="#melodic" id="toc-melodic" class="nav-link" data-scroll-target="#melodic">Melodic</a></li>
+  <li><a href="#performance-comparison" id="toc-performance-comparison" class="nav-link" data-scroll-target="#performance-comparison">Performance comparison</a></li>
+  <li><a href="#conclusions" id="toc-conclusions" class="nav-link" data-scroll-target="#conclusions">Conclusions</a></li>
+  <li><a href="#extra-decomposition" id="toc-extra-decomposition" class="nav-link" data-scroll-target="#extra-decomposition">Extra: decomposition</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/LucianoDeBenedictis/blog/edit/main/posts/raoq/index.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/LucianoDeBenedictis/blog/blob/main/posts/raoq/index.qmd" class="toc-action"><i class="bi empty"></i>View source</a></li><li><a href="https://github.com/LucianoDeBenedictis/blog/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+    </div>
+<!-- main -->
+<main class="content quarto-banner-title-block" id="quarto-document-content">
+
+
+
+
+
+
+<p>C. R. Rao lived more than 100 years and has been one of the greatest mathematicians and statisticians of the 20th century. Ecologists mostly know him for his quadratic entropy, which probably isn’t even one of <a href="https://www.nature.com/articles/d41586-023-03200-5">his greatest achievements</a>.</p>
+<p>Rao’s Quadratic Entropy (<span class="citation" data-cites="rao2010">Rao (<a href="#ref-rao2010" role="doc-biblioref">2010</a>)</span>, also called DIVC, <span class="citation" data-cites="rao1982">Rao (<a href="#ref-rao1982" role="doc-biblioref">1982</a>)</span>) is one of the oldest and most popular indices of functional diversity. It’s generically defined on probability distributions, but we often see what I like to call the multinomial form:</p>
+<p><span class="math display">\[Q = \sum_{i}^{N}\sum_{j}^{N}d_{ij}p_{i}p_{j}\]</span></p>
+<p>Call <em>i</em> and <em>j</em> two species out of <em>N</em>, <em>d</em> a distance between them, <em>p</em> their proportional abundances, and you have a way to calculate the average distance between two randomly drawn individuals (or more generally a weighted average distance).</p>
+<p>While this <span class="math inline">\(\alpha\)</span> diversity formula is well known, stopping there is also extremely reductive. Diversity partitioning across scales (something akin to <span class="math inline">\(\beta\)</span>) has been there since the beginning, since the main goal always has been to develop a generalization of ANOVA. A unified theory tying this to other well known indices has always been there too, but today I won’t focus more on the theory, but rather on software implementations. If you want to learn more about the theory, a lot of work has been done in the last 40 years, and a lot of articles published: you can find an overview in <span class="citation" data-cites="debenedictis2026">De Benedictis et al. (<a href="#ref-debenedictis2026" role="doc-biblioref">2026</a>)</span> and its <a href="https://ars.els-cdn.com/content/image/1-s2.0-S1470160X26000841-mmc3.pdf">Appendix C</a>.</p>
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">Setup</h2>
+<p>Just the bare minimum today.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(conflicted)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="rao-functional-diversity" class="level2">
+<h2 class="anchored" data-anchor-id="rao-functional-diversity">Rao functional diversity</h2>
+<p>The example data is a snippet from the <a href="https://zenodo.org/records/17311232">data</a> of <span class="citation" data-cites="debenedictis2026">De Benedictis et al. (<a href="#ref-debenedictis2026" role="doc-biblioref">2026</a>)</span>. This is a peculiar case, because it comes from a 1000-unit looping transect which has been resampled with overlap at several scales, so there are many sampling units, but each has few records because they come from beech forest understory. This is just one scale of one transect. For each sampling unit X, row represent observations of a species. When the sampling units are aggregates as in this case, these can be used to calculate frequencies.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Want to know how we got here? Check out the <a href="../../posts/tidyecology/index.html">twin post</a>!</p>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># load the preprocessed data</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>transect <span class="ot">&lt;-</span> <span class="fu">read_rds</span>(<span class="st">"transect.rds"</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>transect <span class="ot">&lt;-</span> transect <span class="sc">|&gt;</span> </span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="co">#summarise records into species frequencies</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(X, species) <span class="sc">|&gt;</span> </span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  <span class="co"># convert frequencies to proportions</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">prop =</span> n <span class="sc">/</span> <span class="fu">sum</span>(n), <span class="at">.by =</span> X) <span class="sc">|&gt;</span> </span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">!</span>n)</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co"># convert data to a more traditional matrix</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>transect_mat <span class="ot">&lt;-</span> transect <span class="sc">|&gt;</span> </span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> species, </span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>              <span class="at">values_from =</span> prop,</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>              <span class="at">values_fill =</span> <span class="dv">0</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">column_to_rownames</span>(<span class="st">"X"</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.matrix</span>()</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>transect</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1,601 × 3
+       X species                  prop
+   &lt;int&gt; &lt;chr&gt;                   &lt;dbl&gt;
+ 1   152 Rosa arvensis           1    
+ 2   153 Rosa arvensis           1    
+ 3   154 Rosa arvensis           1    
+ 4   155 Rosa arvensis           1    
+ 5   156 Rosa arvensis           1    
+ 6   157 Brachypodium sylvaticum 0.5  
+ 7   157 Rosa arvensis           0.5  
+ 8   158 Brachypodium sylvaticum 0.667
+ 9   158 Rosa arvensis           0.333
+10   159 Brachypodium sylvaticum 0.75 
+# ℹ 1,591 more rows</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># I have already done the work of gathering traits and calculate a distance matrix</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>distances <span class="ot">&lt;-</span> <span class="fu">read_rds</span>(<span class="st">"dist.rds"</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>distances[<span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                  Sanicula europaea Galium odoratum Melica uniflora
+Sanicula europaea         0.0000000       0.4859495       0.3095512
+Galium odoratum           0.4859495       0.0000000       0.3663165
+Melica uniflora           0.3095512       0.3663165       0.0000000</code></pre>
+</div>
+</div>
+</section>
+<section id="custom-function" class="level2">
+<h2 class="anchored" data-anchor-id="custom-function">Custom function</h2>
+<p>As the first solution, I wanted to share a function that it’s so simple it almost feels like it shouldn’t work. The actual calculation is just one line of matrix algebra, the part before is just to get <code>props</code> and <code>dist</code> to agree. In practice, I’d always specify <code>species</code>, because this also ensures proportions and distances are in the same order (assuming the proportions come from a dataframe with a matching species column). Credit to this <a href="https://gist.github.com/jslefche/09756ff84afc7b6a82ea0582e663d098">gist</a> by Jon Lefcheck, even if the idea floats around the internet.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>raoq <span class="ot">&lt;-</span> <span class="cf">function</span>(props, dist, <span class="at">species =</span> <span class="cn">NULL</span>){</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="co">#subset species in the distance matrix if necessary</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span>(<span class="sc">!</span><span class="fu">is.null</span>(species)){</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    dist <span class="ot">&lt;-</span> dist[species, species]</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="fu">crossprod</span>(props, dist <span class="sc">%*%</span> props))</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Rao sums across all species pairs the distance between <em>i</em> and <em>j</em> multiplied by the proportions of <em>i</em> and <em>j</em> to calculate an average distance. Our distance matrix already has all species pairs (optionally some that are not present, which can be subset or assigned 0 proportions), so there’s no need to loop: we just apply the matrix cross-product twice.</p>
+<p>If you want, you could add a little check at the beginning if you want to take the species from the names of <code>props</code>, if present, but I prefer to be explicit with this sort of things.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span>(<span class="fu">is.null</span>(species) <span class="sc">&amp;&amp;</span> <span class="sc">!</span><span class="fu">is.null</span>(<span class="fu">names</span>(props))) species <span class="ot">&lt;-</span> <span class="fu">names</span>(props)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<section id="matrix-cross-products" class="level3">
+<h3 class="anchored" data-anchor-id="matrix-cross-products">Matrix cross products?</h3>
+<p>To get an intuition for what the cross-product does, the first pass takes the matrix, multiplies each column by the respective value in the vector, then sums the columns together.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>mat <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">9</span>, <span class="at">ncol =</span> <span class="dv">3</span>, <span class="at">byrow =</span> T)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>ab <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>mat</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     [,1] [,2] [,3]
+[1,]    1    2    3
+[2,]    4    5    6
+[3,]    7    8    9</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>mat <span class="sc">%*%</span> ab</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     [,1]
+[1,]   14
+[2,]   32
+[3,]   50</code></pre>
+</div>
+</div>
+<p>The second pass takes the resulting column matrix, transposes it to a row and repeats the process (so the row of values gets summed and you end up with a single value). The <code>c()</code> is just so that it’s not a 1 <span class="math inline">\(\times\)</span> 1 matrix.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(<span class="fu">crossprod</span>(ab, mat <span class="sc">%*%</span> ab))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 228</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">#same as</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(mat <span class="sc">%*%</span> ab <span class="sc">*</span> ab)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 228</code></pre>
+</div>
+</div>
+<p>You can double check the result with a less compact and probably slower version:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># multiply each row of mat by ab</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>step1 <span class="ot">&lt;-</span> <span class="fu">sweep</span>(mat, <span class="dv">2</span>, ab, <span class="st">"*"</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># sum columns together</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rowSums</span>()</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(step1 <span class="sc">*</span> ab)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 228</code></pre>
+</div>
+</div>
+<p>Back to the example. One way we can iterate <code>raoq</code> across multiple samples is by nesting and mapping:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>transect_nested <span class="ot">&lt;-</span> transect <span class="sc">|&gt;</span> </span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># nest, one tibble for each X</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">nest</span>(<span class="at">.by =</span> X)</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="co"># calculate Rao!</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>transect_nested <span class="ot">&lt;-</span> transect_nested <span class="sc">|&gt;</span> </span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Rao =</span> <span class="fu">map_dbl</span>(data, \(x) <span class="fu">raoq</span>(x<span class="sc">$</span>prop, distances, x<span class="sc">$</span>species)))</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>transect_nested</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 564 × 3
+       X data               Rao
+   &lt;int&gt; &lt;list&gt;           &lt;dbl&gt;
+ 1   152 &lt;tibble [1 × 2]&gt; 0    
+ 2   153 &lt;tibble [1 × 2]&gt; 0    
+ 3   154 &lt;tibble [1 × 2]&gt; 0    
+ 4   155 &lt;tibble [1 × 2]&gt; 0    
+ 5   156 &lt;tibble [1 × 2]&gt; 0    
+ 6   157 &lt;tibble [2 × 2]&gt; 0.384
+ 7   158 &lt;tibble [2 × 2]&gt; 0.341
+ 8   159 &lt;tibble [2 × 2]&gt; 0.288
+ 9   160 &lt;tibble [2 × 2]&gt; 0.341
+10   161 &lt;tibble [2 × 2]&gt; 0.360
+# ℹ 554 more rows</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="fd-ade4-and-adiv" class="level2">
+<h2 class="anchored" data-anchor-id="fd-ade4-and-adiv">FD, ade4, and adiv</h2>
+<p>How would one do this with usual packages? <code>FD::dbFD()</code> can calculate Rao, alongside many other things which can’t all be disabled (and take time to compute).</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># distance matrix must be dist and not contain extra species</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>dist_dbfd <span class="ot">&lt;-</span> distances[<span class="fu">colnames</span>(transect_mat), <span class="fu">colnames</span>(transect_mat)] <span class="sc">|&gt;</span> </span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.dist</span>()</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>rao_dbfd <span class="ot">&lt;-</span> FD<span class="sc">::</span><span class="fu">dbFD</span>(</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>  <span class="co">#first argument could be either traits or a dist object</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">x =</span> dist_dbfd,</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>  <span class="co">#abundance matrix</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">a =</span> transect_mat,</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">w.abun =</span> T,</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">calc.FRic =</span> F,</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">calc.FDiv =</span> F,</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">calc.CWM =</span> F,</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">messages =</span> F) <span class="sc">|&gt;</span> </span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>  <span class="co">#just Rao, please</span></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pluck</span>(<span class="st">"RaoQ"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Under the hood, it calls <code>ade4::divc()</code>, which is a second option, just with a different data structure.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>rao_ade4 <span class="ot">&lt;-</span> ade4<span class="sc">::</span><span class="fu">divc</span>(</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="co">#abundances should be a dataframe with species as ROWS</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.data.frame</span>(<span class="fu">t</span>(transect_mat)),</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="co">#dist object above</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>  dist_dbfd,</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>  <span class="co">#the default for scale is F, but since it is undocumented better be explicit</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">scale =</span> F)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Unsurprisingly, the two give the same result, but it is not the same as <code>raoq()</code>. Why?</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">all.equal</span>(<span class="fu">unname</span>(rao_dbfd), rao_ade4<span class="sc">$</span>diversity)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">all.equal</span>(rao_ade4<span class="sc">$</span>diversity, transect_nested<span class="sc">$</span>Rao)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Mean relative difference: 2.134283"</code></pre>
+</div>
+</div>
+<p>Inspecting the source, <code>divc()</code> does the same cross product trick, but column by column so it’s less efficient. Then, despite referencing <span class="citation" data-cites="rao1982">Rao (<a href="#ref-rao1982" role="doc-biblioref">1982</a>)</span>, it performs a slightly different calculation: the distance matrix is squared, and the column result is divided by two and divided again by the squared sum of abundances. Putting aside the squared sum thing (that part is just scaling the raw abundances/presences/frequencies into proportions after the fact), this is actually the “Euclidean diversity coefficient” of <span class="citation" data-cites="champely2002">Champely and Chessel (<a href="#ref-champely2002" role="doc-biblioref">2002</a>)</span>! The reasoning behind it is that if distance used is the Euclidean distance, this equals the variance of the trait distribution <a href="https://ars.els-cdn.com/content/image/1-s2.0-S1470160X26000841-mmc3.pdf">see Appendix C of my article</a>. This has been observed by <span class="citation" data-cites="debello2016">Bello et al. (<a href="#ref-debello2016" role="doc-biblioref">2016</a>)</span> too.</p>
+<p>The scaling part is not an issue, the documentation does say “abundance, presence-absence or frequencies as entries”, and if you feed proportions it’s harmless, but <code>divc()</code> does the distance transformation behind the scenes, only checking if the distance matrix is Euclidean, even if it’s not <strong>the</strong> Euclidean. If we take the guts of <code>divc</code>, remove some input checks, and change one line to remove the <span class="math inline">\(\Delta = \frac{d^{2}}{2}\)</span> part to go back to the original Rao formula, we get something like this:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>fakedivc <span class="ot">&lt;-</span> <span class="cf">function</span> (df, <span class="at">dis =</span> <span class="cn">NULL</span>, <span class="at">scale =</span> <span class="cn">FALSE</span>) </span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>{</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  div <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(<span class="fu">rep</span>(<span class="dv">0</span>, <span class="fu">ncol</span>(df)))</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">names</span>(div) <span class="ot">&lt;-</span> <span class="st">"diversity"</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames</span>(div) <span class="ot">&lt;-</span> <span class="fu">names</span>(df)</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">ncol</span>(df)) {</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">sum</span>(df[, i]) <span class="sc">&lt;</span> <span class="fl">1e-16</span>) </span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>      div[i, ] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span> div[i, ] <span class="ot">&lt;-</span> (<span class="fu">t</span>(df[, i]) <span class="sc">%*%</span> (<span class="fu">as.matrix</span>(dis)) <span class="sc">%*%</span> df[, i])<span class="sc">/</span>(<span class="fu">sum</span>(df[, i])<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (scale <span class="sc">==</span> <span class="cn">TRUE</span>) {</span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>    divmax <span class="ot">&lt;-</span> <span class="fu">divcmax</span>(dis)<span class="sc">$</span>value</span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>    div <span class="ot">&lt;-</span> div<span class="sc">/</span>divmax</span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(div)</span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>And, sure enough, things match now.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>rao_ade4_fake <span class="ot">&lt;-</span> <span class="fu">fakedivc</span>(<span class="fu">as.data.frame</span>(<span class="fu">t</span>(transect_mat)),</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>                          dist_dbfd,</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>                          <span class="at">scale =</span> F)</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="fu">all.equal</span>(rao_ade4_fake<span class="sc">$</span>diversity, transect_nested<span class="sc">$</span>Rao)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+</div>
+<p><code>adiv::QE()</code> is basically the same as these two, down to the source code, but it does have the option to choose between quadratic entropy and Euclidean diversity index:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>rao_adiv <span class="ot">&lt;-</span> adiv<span class="sc">::</span><span class="fu">QE</span>(transect_mat,</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>                     dist_dbfd,</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"QE"</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>()</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a><span class="fu">all.equal</span>(rao_adiv, transect_nested<span class="sc">$</span>Rao)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+</div>
+</section>
+<section id="fundiversity" class="level2">
+<h2 class="anchored" data-anchor-id="fundiversity">fundiversity</h2>
+<p>I agree, diversity is fun. This package seems cool, and the function <code>fd_raoq()</code> too. It can accept either traits or distances, has a nice helper to subset it and the community if the species don’t match, and uses the cross product under the hood. The results are the same as with <code>raoq()</code>:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>rao_fun <span class="ot">&lt;-</span> fundiversity<span class="sc">::</span><span class="fu">fd_raoq</span>(<span class="at">sp_com =</span> transect_mat,</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">dist_matrix =</span> distances) <span class="sc">|&gt;</span> </span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pluck</span>(<span class="st">"Q"</span>)</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a><span class="fu">all.equal</span>(rao_fun, transect_nested<span class="sc">$</span>Rao)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+</div>
+</section>
+<section id="mfd" class="level2">
+<h2 class="anchored" data-anchor-id="mfd">mFD</h2>
+<p>This function is one of those that calculates generalizations of functional diversity. Being based on Hill numbers, what it returns is actually the equivalent number <span class="math inline">\(E = \frac{1}{1-Q}\)</span> but you only notice this if you pay attention to the cited literature and to the phrase “is equivalent to”, which doesn’t mean “equals”. Once we retransform the values, things add up.</p>
+<div class="callout callout-style-default callout-caution callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Caution
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>While this function supports both matrices and <code>dist</code> objects, I got different results using <code>dist_dbfd</code> from above. The reason is that the distance matrix is automatically scaled, whether you want it or not, and <code>dist_dbfd</code> is a subset of the full matrix. This is something to keep in mind, especially if you try to compare samples calculated with different distance matrices.</p>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>rao_mfd <span class="ot">&lt;-</span> mFD<span class="sc">::</span><span class="fu">alpha.fd.hill</span>(transect_mat,</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>                              distances,</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>                              <span class="at">q =</span> <span class="dv">2</span>,</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>                              <span class="at">tau =</span> <span class="st">"max"</span>,</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>                              <span class="at">details_returned =</span> F)</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>rao_mfd <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">-</span> <span class="dv">1</span> <span class="sc">/</span> rao_mfd[, <span class="dv">1</span>]</span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a><span class="fu">all.equal</span>(<span class="fu">unname</span>(rao_mfd), transect_nested<span class="sc">$</span>Rao)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+</div>
+</section>
+<section id="hillr" class="level2">
+<h2 class="anchored" data-anchor-id="hillr">hillR</h2>
+<p>Another function that calculates Hill number generalizations of functional diversity. We can calculate Rao by setting <code>q = 2</code>. In theory, you can provide either traits, or a “symmetric distance matrix” with <code>traits_as_is</code>: this is a lie, it wants a <code>dist</code> instead. Works fine otherwise. Unlike <code>mFD()</code>, it provides both Rao and functional Hill numbers, so you can pick your favourite.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>rao_hillr <span class="ot">&lt;-</span> hillR<span class="sc">::</span><span class="fu">hill_func</span>(transect_mat, dist_dbfd, <span class="at">traits_as_is =</span> T, <span class="at">q =</span> <span class="dv">2</span>, <span class="at">fdis =</span> F)[<span class="st">"Q"</span>, ]</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a><span class="fu">all.equal</span>(<span class="fu">unname</span>(rao_hillr), transect_nested<span class="sc">$</span>Rao)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+</div>
+</section>
+<section id="melodic" class="level2">
+<h2 class="anchored" data-anchor-id="melodic">Melodic</h2>
+<p>What if we look outside of CRAN? <span class="citation" data-cites="debello2016">Bello et al. (<a href="#ref-debello2016" role="doc-biblioref">2016</a>)</span> provide an R function called <code>melodic()</code> It’s a bit hidden inside the supplementary materials, and I had to tweak the checks in the first two lines because something must have changed with R in the last ten years: matrices seem to always have both class <code>"matrix"</code> and <code>"array"</code>, so the check gives an error. I changed it to use <code>inherits()</code>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="do">##MEan DIssimilarity Components##</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a><span class="co">#samp:  community matrix; sites in lines, species in columns</span></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a><span class="co">#dis:   dissimilarity matrix</span></span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a><span class="co">#type:  "both" for results with abundances weighted and non-weighted</span></span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a><span class="co">#       "abundance" for results with abundances weighted</span></span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a><span class="co">#       "presence" for results with abundances non-weighted</span></span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>melodic <span class="ot">&lt;-</span> <span class="cf">function</span>(samp,dis,<span class="at">type=</span><span class="st">"both"</span>){</span>
+<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span>(<span class="sc">!</span><span class="fu">inherits</span>(samp, <span class="st">"matrix"</span>)){samp <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(samp)}</span>
+<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span>(<span class="sc">!</span><span class="fu">inherits</span>(samp, <span class="st">"matrix"</span>)){dis <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(dis)}</span>
+<span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span>(<span class="fu">is.null</span>(<span class="fu">colnames</span>(samp)) <span class="sc">|</span> <span class="fu">is.null</span>(<span class="fu">colnames</span>(dis)) ){</span>
+<span id="cb37-12"><a href="#cb37-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="st">"Both samp and dis must have colnames.</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb37-13"><a href="#cb37-13" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb37-14"><a href="#cb37-14" aria-hidden="true" tabindex="-1"></a>  N<span class="ot">&lt;-</span><span class="fu">dim</span>(samp)[<span class="dv">1</span>]</span>
+<span id="cb37-15"><a href="#cb37-15" aria-hidden="true" tabindex="-1"></a>    melodic<span class="ot">&lt;-</span><span class="fu">list</span>()</span>
+<span id="cb37-16"><a href="#cb37-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (type<span class="sc">==</span><span class="st">"both"</span>){</span>
+<span id="cb37-17"><a href="#cb37-17" aria-hidden="true" tabindex="-1"></a>        melodic<span class="sc">$</span>abundance<span class="ot">&lt;-</span><span class="fu">list</span>()</span>
+<span id="cb37-18"><a href="#cb37-18" aria-hidden="true" tabindex="-1"></a>        melodic<span class="sc">$</span>abundance<span class="sc">$</span>mpd<span class="ot">&lt;-</span>melodic<span class="sc">$</span>abundance<span class="sc">$</span>rao<span class="ot">&lt;-</span>melodic<span class="sc">$</span>abundance<span class="sc">$</span>simpson<span class="ot">&lt;-</span><span class="fu">numeric</span>(N)</span>
+<span id="cb37-19"><a href="#cb37-19" aria-hidden="true" tabindex="-1"></a>        melodic<span class="sc">$</span>presence<span class="ot">&lt;-</span><span class="fu">list</span>()</span>
+<span id="cb37-20"><a href="#cb37-20" aria-hidden="true" tabindex="-1"></a>        melodic<span class="sc">$</span>presence<span class="sc">$</span>mpd<span class="ot">&lt;-</span>melodic<span class="sc">$</span>presence<span class="sc">$</span>rao<span class="ot">&lt;-</span>melodic<span class="sc">$</span>presence<span class="sc">$</span>simpson<span class="ot">&lt;-</span><span class="fu">numeric</span>(N)</span>
+<span id="cb37-21"><a href="#cb37-21" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb37-22"><a href="#cb37-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (type<span class="sc">==</span><span class="st">"abundance"</span>){ </span>
+<span id="cb37-23"><a href="#cb37-23" aria-hidden="true" tabindex="-1"></a>        melodic<span class="sc">$</span>abundance<span class="ot">&lt;-</span><span class="fu">list</span>()</span>
+<span id="cb37-24"><a href="#cb37-24" aria-hidden="true" tabindex="-1"></a>        melodic<span class="sc">$</span>abundance<span class="sc">$</span>mpd<span class="ot">&lt;-</span>melodic<span class="sc">$</span>abundance<span class="sc">$</span>rao<span class="ot">&lt;-</span>melodic<span class="sc">$</span>abundance<span class="sc">$</span>simpson<span class="ot">&lt;-</span><span class="fu">numeric</span>(N)</span>
+<span id="cb37-25"><a href="#cb37-25" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb37-26"><a href="#cb37-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (type<span class="sc">==</span><span class="st">"presence"</span>){ </span>
+<span id="cb37-27"><a href="#cb37-27" aria-hidden="true" tabindex="-1"></a>        melodic<span class="sc">$</span>presence<span class="ot">&lt;-</span><span class="fu">list</span>()</span>
+<span id="cb37-28"><a href="#cb37-28" aria-hidden="true" tabindex="-1"></a>        melodic<span class="sc">$</span>presence<span class="sc">$</span>mpd<span class="ot">&lt;-</span>melodic<span class="sc">$</span>presence<span class="sc">$</span>rao<span class="ot">&lt;-</span>melodic<span class="sc">$</span>presence<span class="sc">$</span>simpson<span class="ot">&lt;-</span><span class="fu">numeric</span>(N)</span>
+<span id="cb37-29"><a href="#cb37-29" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb37-30"><a href="#cb37-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>N){</span>
+<span id="cb37-31"><a href="#cb37-31" aria-hidden="true" tabindex="-1"></a>        sppInSample<span class="ot">&lt;-</span><span class="fu">names</span>(samp[i,samp[i, ]<span class="sc">&gt;</span><span class="dv">0</span>])</span>
+<span id="cb37-32"><a href="#cb37-32" aria-hidden="true" tabindex="-1"></a>        melodic<span class="sc">$</span>richness[i]<span class="ot">&lt;-</span><span class="fu">rowSums</span>(samp<span class="sc">&gt;</span><span class="dv">0</span>)[i]</span>
+<span id="cb37-33"><a href="#cb37-33" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> (<span class="fu">length</span>(sppInSample)<span class="sc">&gt;</span><span class="dv">1</span>){</span>
+<span id="cb37-34"><a href="#cb37-34" aria-hidden="true" tabindex="-1"></a>            sample.dis<span class="ot">&lt;-</span>dis[sppInSample,sppInSample]</span>
+<span id="cb37-35"><a href="#cb37-35" aria-hidden="true" tabindex="-1"></a>            abund.w<span class="ot">&lt;-</span><span class="fu">numeric</span>(<span class="fu">length</span>(sppInSample))</span>
+<span id="cb37-36"><a href="#cb37-36" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> (type<span class="sc">==</span><span class="st">"both"</span> <span class="sc">|</span> type<span class="sc">==</span><span class="st">"abundance"</span>){</span>
+<span id="cb37-37"><a href="#cb37-37" aria-hidden="true" tabindex="-1"></a>                abund.w <span class="ot">&lt;-</span> samp[i , sppInSample] <span class="sc">/</span> <span class="fu">sum</span>(samp[i , sppInSample])</span>
+<span id="cb37-38"><a href="#cb37-38" aria-hidden="true" tabindex="-1"></a>                sample.weights <span class="ot">&lt;-</span> <span class="fu">outer</span>(abund.w , abund.w)</span>
+<span id="cb37-39"><a href="#cb37-39" aria-hidden="true" tabindex="-1"></a>                melodic<span class="sc">$</span>abundance<span class="sc">$</span>mpd[i] <span class="ot">&lt;-</span> <span class="fu">weighted.mean</span>(sample.dis[<span class="fu">lower.tri</span>(sample.dis)] , sample.weights[<span class="fu">lower.tri</span>(sample.weights)])</span>
+<span id="cb37-40"><a href="#cb37-40" aria-hidden="true" tabindex="-1"></a>                melodic<span class="sc">$</span>abundance<span class="sc">$</span>rao[i] <span class="ot">&lt;-</span> <span class="fu">sum</span>(sample.weights <span class="sc">*</span> sample.dis)</span>
+<span id="cb37-41"><a href="#cb37-41" aria-hidden="true" tabindex="-1"></a>                melodic<span class="sc">$</span>abundance<span class="sc">$</span>simpson[i] <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="dv">2</span><span class="sc">*</span>sample.weights[<span class="fu">lower.tri</span>(sample.weights)])</span>
+<span id="cb37-42"><a href="#cb37-42" aria-hidden="true" tabindex="-1"></a>            }   </span>
+<span id="cb37-43"><a href="#cb37-43" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> (type<span class="sc">==</span><span class="st">"both"</span> <span class="sc">|</span> type<span class="sc">==</span><span class="st">"presence"</span>){</span>
+<span id="cb37-44"><a href="#cb37-44" aria-hidden="true" tabindex="-1"></a>                abund.nw <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="dv">1</span> , <span class="fu">length</span>(sppInSample)) <span class="sc">/</span> <span class="fu">length</span>(sppInSample)</span>
+<span id="cb37-45"><a href="#cb37-45" aria-hidden="true" tabindex="-1"></a>                sample.weights <span class="ot">&lt;-</span> <span class="fu">outer</span>(abund.nw , abund.nw)</span>
+<span id="cb37-46"><a href="#cb37-46" aria-hidden="true" tabindex="-1"></a>                melodic<span class="sc">$</span>presence<span class="sc">$</span>mpd[i] <span class="ot">&lt;-</span> <span class="fu">weighted.mean</span>(sample.dis[<span class="fu">lower.tri</span>(sample.dis)] , sample.weights[<span class="fu">lower.tri</span>(sample.weights)])</span>
+<span id="cb37-47"><a href="#cb37-47" aria-hidden="true" tabindex="-1"></a>                melodic<span class="sc">$</span>presence<span class="sc">$</span>rao[i] <span class="ot">&lt;-</span> <span class="fu">sum</span>(sample.weights <span class="sc">*</span> sample.dis)</span>
+<span id="cb37-48"><a href="#cb37-48" aria-hidden="true" tabindex="-1"></a>                melodic<span class="sc">$</span>presence<span class="sc">$</span>simpson[i] <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="dv">2</span><span class="sc">*</span>sample.weights[<span class="fu">lower.tri</span>(sample.weights)])</span>
+<span id="cb37-49"><a href="#cb37-49" aria-hidden="true" tabindex="-1"></a>            }   </span>
+<span id="cb37-50"><a href="#cb37-50" aria-hidden="true" tabindex="-1"></a>        }   <span class="cf">else</span> {</span>
+<span id="cb37-51"><a href="#cb37-51" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> (type<span class="sc">==</span><span class="st">"both"</span> <span class="sc">|</span> type<span class="sc">==</span><span class="st">"abundance"</span>){</span>
+<span id="cb37-52"><a href="#cb37-52" aria-hidden="true" tabindex="-1"></a>                melodic<span class="sc">$</span>abundance<span class="sc">$</span>mpd[i] <span class="ot">&lt;-</span> <span class="cn">NA</span></span>
+<span id="cb37-53"><a href="#cb37-53" aria-hidden="true" tabindex="-1"></a>                melodic<span class="sc">$</span>abundance<span class="sc">$</span>rao[i] <span class="ot">&lt;-</span> melodic<span class="sc">$</span>abundance<span class="sc">$</span>simpson[i] <span class="ot">&lt;-</span><span class="dv">0</span></span>
+<span id="cb37-54"><a href="#cb37-54" aria-hidden="true" tabindex="-1"></a>            }</span>
+<span id="cb37-55"><a href="#cb37-55" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> (type<span class="sc">==</span><span class="st">"both"</span> <span class="sc">|</span> type<span class="sc">==</span><span class="st">"presence"</span>){</span>
+<span id="cb37-56"><a href="#cb37-56" aria-hidden="true" tabindex="-1"></a>                melodic<span class="sc">$</span>presence<span class="sc">$</span>mpd[i] <span class="ot">&lt;-</span> <span class="cn">NA</span></span>
+<span id="cb37-57"><a href="#cb37-57" aria-hidden="true" tabindex="-1"></a>                melodic<span class="sc">$</span>presence<span class="sc">$</span>rao[i] <span class="ot">&lt;-</span> melodic<span class="sc">$</span>presence<span class="sc">$</span>simpson[i] <span class="ot">&lt;-</span><span class="dv">0</span></span>
+<span id="cb37-58"><a href="#cb37-58" aria-hidden="true" tabindex="-1"></a>            }</span>
+<span id="cb37-59"><a href="#cb37-59" aria-hidden="true" tabindex="-1"></a>        }</span>
+<span id="cb37-60"><a href="#cb37-60" aria-hidden="true" tabindex="-1"></a>    }   </span>
+<span id="cb37-61"><a href="#cb37-61" aria-hidden="true" tabindex="-1"></a>    out<span class="ot">&lt;-</span>melodic</span>
+<span id="cb37-62"><a href="#cb37-62" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(out) </span>
+<span id="cb37-63"><a href="#cb37-63" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>This function is alright: a bit more complex than <code>raoq()</code> and it doesn’t use the cool cross products, opting for a loop instead. You might find the extra output it gives useful. If we focus on Rao, it works as expected:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>rao_mel <span class="ot">&lt;-</span> <span class="fu">melodic</span>(transect_mat, distances, <span class="st">"abundance"</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pluck</span>(<span class="st">"abundance"</span>, <span class="st">"rao"</span>)</span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a><span class="fu">all.equal</span>(rao_mel, transect_nested<span class="sc">$</span>Rao)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+</div>
+</section>
+<section id="performance-comparison" class="level2">
+<h2 class="anchored" data-anchor-id="performance-comparison">Performance comparison</h2>
+<p>The authors of <code>fundiversity</code> seem to care about performance, since they did an overview of available packages and benchmarked them together. One thing I noticed about <code>fd_raoq()</code> is that it calculates Rao even with pairs of abundance vectors from different communities. That could be useful as a first step to calculate the original Rao dissimilarity, but here they are just discarded. How will it perform against the others?</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>dist_subset <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(dist_dbfd)</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a><span class="co">#suppressMessages is so that FD would shut up</span></span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>bench <span class="ot">&lt;-</span> bench<span class="sc">::</span><span class="fu">mark</span>(</span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">raoq_map =</span> <span class="fu">map_dbl</span>(transect_nested<span class="sc">$</span>data, \(x) <span class="fu">raoq</span>(x<span class="sc">$</span>prop, distances, x<span class="sc">$</span>species)),</span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">raoq_mat =</span> <span class="fu">apply</span>(transect_mat, <span class="dv">1</span>, <span class="cf">function</span>(x) <span class="fu">raoq</span>(x, dist_subset)),</span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">FD =</span> FD<span class="sc">::</span><span class="fu">dbFD</span>(<span class="at">x =</span> dist_dbfd,</span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>           <span class="at">a =</span> transect_mat,</span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a>           <span class="at">w.abun =</span> T,</span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a>           <span class="at">calc.FRic =</span> F,</span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a>           <span class="at">calc.FDiv =</span> F,</span>
+<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a>           <span class="at">calc.CWM =</span> F,</span>
+<span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a>           <span class="at">messages =</span> F),</span>
+<span id="cb40-14"><a href="#cb40-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">ade4 =</span> ade4<span class="sc">::</span><span class="fu">divc</span>(<span class="fu">as.data.frame</span>(<span class="fu">t</span>(transect_mat)),</span>
+<span id="cb40-15"><a href="#cb40-15" aria-hidden="true" tabindex="-1"></a>             dist_dbfd,</span>
+<span id="cb40-16"><a href="#cb40-16" aria-hidden="true" tabindex="-1"></a>             <span class="at">scale =</span> F),</span>
+<span id="cb40-17"><a href="#cb40-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">adiv =</span> adiv<span class="sc">::</span><span class="fu">QE</span>(transect_mat, dist_dbfd, <span class="st">"QE"</span>),</span>
+<span id="cb40-18"><a href="#cb40-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">fundiversity =</span> fundiversity<span class="sc">::</span><span class="fu">fd_raoq</span>(<span class="at">sp_com =</span> transect_mat, <span class="at">dist_matrix =</span> distances),</span>
+<span id="cb40-19"><a href="#cb40-19" aria-hidden="true" tabindex="-1"></a>  <span class="at">mFD =</span> mFD<span class="sc">::</span><span class="fu">alpha.fd.hill</span>(transect_mat, distances, <span class="at">q =</span> <span class="dv">2</span>, <span class="at">tau =</span> <span class="st">"max"</span>, <span class="at">details_returned =</span> F),</span>
+<span id="cb40-20"><a href="#cb40-20" aria-hidden="true" tabindex="-1"></a>  <span class="at">hillR =</span> hillR<span class="sc">::</span><span class="fu">hill_func</span>(transect_mat, dist_dbfd, <span class="at">traits_as_is =</span> T, <span class="at">q =</span> <span class="dv">2</span>, <span class="at">fdis =</span> F),</span>
+<span id="cb40-21"><a href="#cb40-21" aria-hidden="true" tabindex="-1"></a>  <span class="at">melodic =</span> <span class="fu">melodic</span>(transect_mat, distances, <span class="st">"abundance"</span>),</span>
+<span id="cb40-22"><a href="#cb40-22" aria-hidden="true" tabindex="-1"></a>  <span class="at">check =</span> F) <span class="sc">|&gt;</span> </span>
+<span id="cb40-23"><a href="#cb40-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(median)</span>
+<span id="cb40-24"><a href="#cb40-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-25"><a href="#cb40-25" aria-hidden="true" tabindex="-1"></a>bench</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 9 × 6
+  expression        min   median `itr/sec` mem_alloc `gc/sec`
+  &lt;bch:expr&gt;   &lt;bch:tm&gt; &lt;bch:tm&gt;     &lt;dbl&gt; &lt;bch:byt&gt;    &lt;dbl&gt;
+1 fundiversity   1.21ms   1.77ms    476.      2.68MB    37.6 
+2 raoq_mat       1.88ms   2.01ms    467.     62.89KB     4.00
+3 raoq_map       3.98ms   4.41ms    139.     44.14KB     3.96
+4 hillR          9.26ms   9.98ms     94.8      276KB     3.95
+5 mFD            22.7ms  23.19ms     42.1   451.85KB     1.91
+6 adiv          24.63ms  25.52ms     37.4     3.25MB     3.94
+7 melodic       37.07ms  41.47ms     23.8    14.93MB     9.92
+8 ade4           63.6ms  66.31ms     15.0     3.37MB     1.87
+9 FD           856.57ms 856.57ms      1.17    5.86MB     2.33</code></pre>
+</div>
+</div>
+<p><code>fd_raoq()</code> still wins, with <code>raoq()</code> close behind! This is the power of primitve matrix operations: even when computing N<sup>2</sup> indices instead of N, this is still faster if you can do it with matrix products instead of row by row. This holds true even when the distance matrix is subset beforehand, instead of each iteration (raoq_map).</p>
+<p>Learning from this and taking up the challenge, can we make <code>raoq()</code> <em>fast</em>? Since the trick is to use only matrix operations, we turn to the community matrix, instead of iterating over single vectors of proportions. This has the advantage that we don’t need to have a separate <code>species</code> argument, we can just use column names as everyone else. Turns out we don’t need to do the big N<sup>2</sup> cross product, we can do something similar to what I did when <a href="#matrix-cross-products">explaining the double cross product</a> by just doing multiplication followed by summing columns. We can have our cake and eat it too, or as they say in Italy, you can have a full cask and a drunk wife (I’m not a fan of cake, wine, or sexist sayings either):</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>raoq_fast <span class="ot">&lt;-</span> <span class="cf">function</span>(com, dist){</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>  <span class="co">#subset species in the distance matrix if necessary</span></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>  species <span class="ot">&lt;-</span> <span class="fu">colnames</span>(com)</span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>  dist <span class="ot">&lt;-</span> dist[species, species]</span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>  <span class="co">#it's called rowSums because it sums together columns by row</span></span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rowSums</span>((com <span class="sc">%*%</span> dist) <span class="sc">*</span> com)</span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a>rao_raoqfast <span class="ot">&lt;-</span> <span class="fu">raoq_fast</span>(transect_mat, distances)</span>
+<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a><span class="fu">all.equal</span>(<span class="fu">unname</span>(rao_raoqfast), rao_fun)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>rebench <span class="ot">&lt;-</span> bench<span class="sc">::</span><span class="fu">mark</span>(</span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">raoq_fast =</span> <span class="fu">unname</span>(<span class="fu">raoq_fast</span>(transect_mat, distances)),</span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">fd_raoq =</span> fundiversity<span class="sc">::</span><span class="fu">fd_raoq</span>(<span class="at">sp_com =</span> transect_mat, <span class="at">dist_matrix =</span> distances),</span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">check =</span> F) <span class="sc">|&gt;</span> </span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(median)</span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>rebench</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 6
+  expression      min   median `itr/sec` mem_alloc `gc/sec`
+  &lt;bch:expr&gt; &lt;bch:tm&gt; &lt;bch:tm&gt;     &lt;dbl&gt; &lt;bch:byt&gt;    &lt;dbl&gt;
+1 raoq_fast      41µs  44.91µs    19487.  113.94KB     47.0
+2 fd_raoq       1.2ms   1.27ms      620.    2.68MB     53.2</code></pre>
+</div>
+</div>
+<p>Well well! About 40 to 50 times faster than <code>fd_raoq()</code>!</p>
+</section>
+<section id="conclusions" class="level2">
+<h2 class="anchored" data-anchor-id="conclusions">Conclusions</h2>
+<p>In practice, the speed differences are irrelevant, except maybe for <code>dbFD</code>(because it calculates a bunch of other things). Since <code>FD</code>, <code>ade4</code> and <code>adiv</code> calculate their own version of Rao, I would use either my functions, <code>adiv</code>, <code>fundiversity</code>, or <code>melodic</code>. If you’re into Hill numbers, the <code>mFD</code> and <code>hillR</code> packages are interesting, but you can always transform Rao yourself if you stick with <em>q</em> = 2. Between my two functions, I would probably still use the slower one, because iterating explicitly gives me more control over the output format. Another thing of note is whether the functions require you to subset the distance matrix beforehand or they take care of it themselves, and whether they want a matrix or a <code>dist</code>. I consider functions that can take a matrix and can subset or rearrange it more robust, and those would be <code>raoq()</code>(either one), <code>fd_raoq()</code>, <code>alpha.fd.hill()</code>, and <code>melodic()</code>.</p>
+<p>I hope this is useful to someone. The first thought when having to calculate an index might be “oh, I’ll just grab a package that does it”, but we have seen how things are not as simple as that in this case. This is not meant to be a comprehensive overview, but to include many popular solutions as well as providing some interesting alternatives.</p>
+</section>
+<section id="extra-decomposition" class="level2">
+<h2 class="anchored" data-anchor-id="extra-decomposition">Extra: decomposition</h2>
+<p>I mentioned at the beginning that the <span class="math inline">\(\alpha\)</span> formula is just a small part of what you can do, and you can go further with a nested decomposition in the style of <span class="math inline">\(\alpha,\beta,\gamma\)</span>.</p>
+<p>To give you a taste of that, I’ll share a function I made for <span class="citation" data-cites="debenedictis2026">De Benedictis et al. (<a href="#ref-debenedictis2026" role="doc-biblioref">2026</a>)</span> which calculates a bunch of Rao-based indices. Compared to the original, I changed the input format to the classical community matrix, <code>raoq()</code> with the updated version with name matching (instead of factors, <em>ugh</em>), and the internal data format to the convention “species on columns, samples on rows”. The indices are described in <span class="citation" data-cites="debello2010">De Bello et al. (<a href="#ref-debello2010" role="doc-biblioref">2010</a>)</span> and <span class="citation" data-cites="pavoine2024">Pavoine and Ricotta (<a href="#ref-pavoine2024" role="doc-biblioref">2024</a>)</span>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>qdecomp <span class="ot">&lt;-</span> <span class="cf">function</span>(data, distances){</span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>  <span class="co">#alpha Q</span></span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>  alpha <span class="ot">&lt;-</span> <span class="fu">apply</span>(data, <span class="dv">1</span>, <span class="cf">function</span>(x) <span class="fu">raoq</span>(x, distances, <span class="fu">names</span>(x))) <span class="sc">|&gt;</span></span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mean</span>()</span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>  <span class="co">#regional relative abundances as mean of local ab.</span></span>
+<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a>  <span class="co">#this gives equal weight to each community</span></span>
+<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a>  P_i <span class="ot">&lt;-</span> <span class="fu">colMeans</span>(data)</span>
+<span id="cb46-8"><a href="#cb46-8" aria-hidden="true" tabindex="-1"></a>  <span class="co">#gamma Q</span></span>
+<span id="cb46-9"><a href="#cb46-9" aria-hidden="true" tabindex="-1"></a>  gamma <span class="ot">&lt;-</span> <span class="fu">raoq</span>(P_i, distances, <span class="fu">names</span>(P_i))</span>
+<span id="cb46-10"><a href="#cb46-10" aria-hidden="true" tabindex="-1"></a>  <span class="co">#additive beta</span></span>
+<span id="cb46-11"><a href="#cb46-11" aria-hidden="true" tabindex="-1"></a>  beta_add <span class="ot">&lt;-</span> gamma <span class="sc">-</span> alpha</span>
+<span id="cb46-12"><a href="#cb46-12" aria-hidden="true" tabindex="-1"></a>  <span class="co">#additive beta normalized by gamma</span></span>
+<span id="cb46-13"><a href="#cb46-13" aria-hidden="true" tabindex="-1"></a>  beta_rel <span class="ot">&lt;-</span> beta_add <span class="sc">/</span> gamma</span>
+<span id="cb46-14"><a href="#cb46-14" aria-hidden="true" tabindex="-1"></a>  <span class="co">#equivalent alpha</span></span>
+<span id="cb46-15"><a href="#cb46-15" aria-hidden="true" tabindex="-1"></a>  E_alpha <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">/</span>(<span class="dv">1</span><span class="sc">-</span>alpha)</span>
+<span id="cb46-16"><a href="#cb46-16" aria-hidden="true" tabindex="-1"></a>  <span class="co">#equivalent gamma</span></span>
+<span id="cb46-17"><a href="#cb46-17" aria-hidden="true" tabindex="-1"></a>  E_gamma <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">/</span>(<span class="dv">1</span><span class="sc">-</span>gamma)</span>
+<span id="cb46-18"><a href="#cb46-18" aria-hidden="true" tabindex="-1"></a>  <span class="co">#multiplicative eq. beta</span></span>
+<span id="cb46-19"><a href="#cb46-19" aria-hidden="true" tabindex="-1"></a>  E_beta_mult <span class="ot">&lt;-</span> E_gamma <span class="sc">/</span> E_alpha</span>
+<span id="cb46-20"><a href="#cb46-20" aria-hidden="true" tabindex="-1"></a>  <span class="co">#additive eq. beta</span></span>
+<span id="cb46-21"><a href="#cb46-21" aria-hidden="true" tabindex="-1"></a>  E_beta_add <span class="ot">&lt;-</span> E_gamma <span class="sc">-</span> E_alpha</span>
+<span id="cb46-22"><a href="#cb46-22" aria-hidden="true" tabindex="-1"></a>  <span class="co">#proportional additive beta, normalized on sample n</span></span>
+<span id="cb46-23"><a href="#cb46-23" aria-hidden="true" tabindex="-1"></a>  E_beta_add_prop_norm <span class="ot">&lt;-</span> (E_beta_add <span class="sc">/</span> E_gamma) <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">-</span> <span class="dv">1</span> <span class="sc">/</span> <span class="fu">nrow</span>(data))</span>
+<span id="cb46-24"><a href="#cb46-24" aria-hidden="true" tabindex="-1"></a>  <span class="co">#matrix of taxonomic distances (0/1)</span></span>
+<span id="cb46-25"><a href="#cb46-25" aria-hidden="true" tabindex="-1"></a>  taxon <span class="ot">&lt;-</span> distances</span>
+<span id="cb46-26"><a href="#cb46-26" aria-hidden="true" tabindex="-1"></a>  taxon[,] <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb46-27"><a href="#cb46-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">diag</span>(taxon) <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb46-28"><a href="#cb46-28" aria-hidden="true" tabindex="-1"></a>  <span class="co">#taxonomic alpha</span></span>
+<span id="cb46-29"><a href="#cb46-29" aria-hidden="true" tabindex="-1"></a>  alpha_sp <span class="ot">&lt;-</span> <span class="fu">apply</span>(data, <span class="dv">1</span>, <span class="cf">function</span>(x) <span class="fu">raoq</span>(x, taxon, <span class="fu">names</span>(x))) <span class="sc">|&gt;</span> </span>
+<span id="cb46-30"><a href="#cb46-30" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mean</span>()</span>
+<span id="cb46-31"><a href="#cb46-31" aria-hidden="true" tabindex="-1"></a>  <span class="co">#taxonomic gamma</span></span>
+<span id="cb46-32"><a href="#cb46-32" aria-hidden="true" tabindex="-1"></a>  gamma_sp <span class="ot">&lt;-</span> <span class="fu">raoq</span>(P_i, taxon, <span class="fu">names</span>(P_i))</span>
+<span id="cb46-33"><a href="#cb46-33" aria-hidden="true" tabindex="-1"></a>  <span class="co">#additive tax. beta</span></span>
+<span id="cb46-34"><a href="#cb46-34" aria-hidden="true" tabindex="-1"></a>  beta_sp_add <span class="ot">&lt;-</span> gamma_sp <span class="sc">-</span> alpha_sp</span>
+<span id="cb46-35"><a href="#cb46-35" aria-hidden="true" tabindex="-1"></a>  <span class="co">#normalized tax. beta</span></span>
+<span id="cb46-36"><a href="#cb46-36" aria-hidden="true" tabindex="-1"></a>  beta_sp_rel <span class="ot">&lt;-</span> beta_sp_add <span class="sc">/</span> gamma_sp</span>
+<span id="cb46-37"><a href="#cb46-37" aria-hidden="true" tabindex="-1"></a>  <span class="co">#equivalent tax. alpha</span></span>
+<span id="cb46-38"><a href="#cb46-38" aria-hidden="true" tabindex="-1"></a>  E_alpha_sp <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">/</span>(<span class="dv">1</span><span class="sc">-</span>alpha_sp)</span>
+<span id="cb46-39"><a href="#cb46-39" aria-hidden="true" tabindex="-1"></a>  <span class="co">#equivalent tax. gamma</span></span>
+<span id="cb46-40"><a href="#cb46-40" aria-hidden="true" tabindex="-1"></a>  E_gamma_sp <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">/</span>(<span class="dv">1</span><span class="sc">-</span>gamma_sp)</span>
+<span id="cb46-41"><a href="#cb46-41" aria-hidden="true" tabindex="-1"></a>  <span class="co">#equivalent tax. beta</span></span>
+<span id="cb46-42"><a href="#cb46-42" aria-hidden="true" tabindex="-1"></a>  E_beta_sp <span class="ot">&lt;-</span> E_gamma_sp <span class="sc">/</span> E_alpha_sp</span>
+<span id="cb46-43"><a href="#cb46-43" aria-hidden="true" tabindex="-1"></a>  <span class="co">#beta Q clustering</span></span>
+<span id="cb46-44"><a href="#cb46-44" aria-hidden="true" tabindex="-1"></a>  clustering <span class="ot">&lt;-</span> beta_rel <span class="sc">/</span> beta_sp_rel</span>
+<span id="cb46-45"><a href="#cb46-45" aria-hidden="true" tabindex="-1"></a>  <span class="co">#gamma Q uniqueness</span></span>
+<span id="cb46-46"><a href="#cb46-46" aria-hidden="true" tabindex="-1"></a>  uniqueness <span class="ot">&lt;-</span> gamma <span class="sc">/</span> gamma_sp</span>
+<span id="cb46-47"><a href="#cb46-47" aria-hidden="true" tabindex="-1"></a>  <span class="co">#gamma E uniqueness</span></span>
+<span id="cb46-48"><a href="#cb46-48" aria-hidden="true" tabindex="-1"></a>  U_gamma_star <span class="ot">&lt;-</span> E_gamma <span class="sc">/</span> E_gamma_sp</span>
+<span id="cb46-49"><a href="#cb46-49" aria-hidden="true" tabindex="-1"></a>  <span class="co">#alpha E redundancy, inverse of Ualpha_star</span></span>
+<span id="cb46-50"><a href="#cb46-50" aria-hidden="true" tabindex="-1"></a>  redundancy_a <span class="ot">&lt;-</span> E_alpha_sp <span class="sc">/</span> E_alpha</span>
+<span id="cb46-51"><a href="#cb46-51" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb46-52"><a href="#cb46-52" aria-hidden="true" tabindex="-1"></a>  output <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(alpha, gamma, beta_add, beta_rel,</span>
+<span id="cb46-53"><a href="#cb46-53" aria-hidden="true" tabindex="-1"></a>                       E_alpha, E_gamma, E_beta_mult, E_beta_add,</span>
+<span id="cb46-54"><a href="#cb46-54" aria-hidden="true" tabindex="-1"></a>                       E_beta_add_prop_norm, clustering, uniqueness,</span>
+<span id="cb46-55"><a href="#cb46-55" aria-hidden="true" tabindex="-1"></a>                       alpha_sp, gamma_sp, U_gamma_star, redundancy_a,</span>
+<span id="cb46-56"><a href="#cb46-56" aria-hidden="true" tabindex="-1"></a>                       beta_sp_add, E_alpha_sp, E_gamma_sp, E_beta_sp)</span>
+<span id="cb46-57"><a href="#cb46-57" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(output)</span>
+<span id="cb46-58"><a href="#cb46-58" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>How does that look, applied to the data?</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="fu">qdecomp</span>(transect_mat, distances) <span class="sc">|&gt;</span> </span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">glimpse</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 1
+Columns: 19
+$ alpha                &lt;dbl&gt; 0.2412185
+$ gamma                &lt;dbl&gt; 0.4228523
+$ beta_add             &lt;dbl&gt; 0.1816339
+$ beta_rel             &lt;dbl&gt; 0.4295444
+$ E_alpha              &lt;dbl&gt; 1.317902
+$ E_gamma              &lt;dbl&gt; 1.732659
+$ E_beta_mult          &lt;dbl&gt; 1.31471
+$ E_beta_add           &lt;dbl&gt; 0.4147564
+$ E_beta_add_prop_norm &lt;dbl&gt; 0.2398009
+$ clustering           &lt;dbl&gt; 0.9526582
+$ uniqueness           &lt;dbl&gt; 0.5636274
+$ alpha_sp             &lt;dbl&gt; 0.4119606
+$ gamma_sp             &lt;dbl&gt; 0.7502337
+$ U_gamma_star         &lt;dbl&gt; 0.4327597
+$ redundancy_a         &lt;dbl&gt; 1.290358
+$ beta_sp_add          &lt;dbl&gt; 0.3382732
+$ E_alpha_sp           &lt;dbl&gt; 1.700566
+$ E_gamma_sp           &lt;dbl&gt; 4.003743
+$ E_beta_sp            &lt;dbl&gt; 2.354359</code></pre>
+</div>
+</div>
+<p>As far as I know, most of the indices above have not yet been implemented in a package. The alternative would be following the <a href="https://doi.org/10.6084/m9.figshare.25342990">script</a> of <span class="citation" data-cites="pavoine2024">Pavoine and Ricotta (<a href="#ref-pavoine2024" role="doc-biblioref">2024</a>)</span>.</p>
+
+
+
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" role="list">
+<div id="ref-debello2016" class="csl-entry" role="listitem">
+Bello, Francesco de, Carlos P. Carmona, Jan Lepš, Robert Szava-Kovats, and Meelis Pärtel. 2016. <span>“Functional Diversity Through the Mean Trait Dissimilarity: Resolving Shortcomings with Existing Paradigms and Algorithms.”</span> <em>Oecologia</em> 180 (4): 933–40. <a href="https://doi.org/10.1007/s00442-016-3546-0">https://doi.org/10.1007/s00442-016-3546-0</a>.
+</div>
+<div id="ref-champely2002" class="csl-entry" role="listitem">
+Champely, Stephane, and Daniel Chessel. 2002. <span>“Measuring Biological Diversity Using Euclidean Metrics.”</span> <em>Environmental and Ecological Statistics</em> 9 (2): 167–77. <a href="https://doi.org/10.1023/A:1015170104476">https://doi.org/10.1023/A:1015170104476</a>.
+</div>
+<div id="ref-debello2010" class="csl-entry" role="listitem">
+De Bello, Francesco, Sébastien Lavergne, Christine N. Meynard, Jan Lepš, and Wilfried Thuiller. 2010. <span>“The Partitioning of Diversity: Showing Theseus a Way Out of the Labyrinth.”</span> <em>Journal of Vegetation Science</em> 21 (5): 992–1000. <a href="https://doi.org/10.1111/j.1654-1103.2010.01195.x">https://doi.org/10.1111/j.1654-1103.2010.01195.x</a>.
+</div>
+<div id="ref-debenedictis2026" class="csl-entry" role="listitem">
+De Benedictis, Luciano Ludovico Maria, Stefano Chelli, Zhengxue Zhu, et al. 2026. <span>“Forest Structure and Understory Functional Diversity at Multiple Scales: The Importance of Median Tree Height.”</span> <em>Ecological Indicators</em> 183 (February): 114687. <a href="https://doi.org/10.1016/j.ecolind.2026.114687">https://doi.org/10.1016/j.ecolind.2026.114687</a>.
+</div>
+<div id="ref-pavoine2024" class="csl-entry" role="listitem">
+Pavoine, Sandrine, and Carlo Ricotta. 2024. <span>“Functional and Phylogenetic β Diversities and Their Link with Clustering/Overdispersion and Uniqueness/Redundancy.”</span> <em>Ecosphere</em> 15 (11): e70045. <a href="https://doi.org/10.1002/ecs2.70045">https://doi.org/10.1002/ecs2.70045</a>.
+</div>
+<div id="ref-rao2010" class="csl-entry" role="listitem">
+Rao, C. R. 2010. <span>“Quadratic Entropy and Analysis of Diversity.”</span> <em>Sankhya A</em> 72 (1): 70–80. <a href="https://doi.org/10.1007/s13171-010-0016-3">https://doi.org/10.1007/s13171-010-0016-3</a>.
+</div>
+<div id="ref-rao1982" class="csl-entry" role="listitem">
+Rao, C. Radhakrishna. 1982. <span>“Diversity and Dissimilarity Coefficients: A Unified Approach.”</span> <em>Theoretical Population Biology</em> 21 (1): 24–43. <a href="https://doi.org/10.1016/0040-5809(82)90004-1">https://doi.org/10.1016/0040-5809(82)90004-1</a>.
+</div>
+</div></section></div></main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    // Ensure there is a toggle, if there isn't float one in the top right
+    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+      const a = window.document.createElement('a');
+      a.classList.add('top-right');
+      a.classList.add('quarto-color-scheme-toggle');
+      a.href = "";
+      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+      const i = window.document.createElement("i");
+      i.classList.add('bi');
+      a.appendChild(i);
+      window.document.body.appendChild(a);
+    }
+    setColorSchemeToggle(hasAlternateSentinel())
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/lucianodebenedictis\.github\.io\/blog\/");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<input type="hidden" id="giscus-base-theme" value="dark_dimmed">
+<input type="hidden" id="giscus-alt-theme" value="dark_dimmed">
+<script>
+  function loadGiscus() {
+    // Function to get the theme based on body class
+    const getTheme = () => {
+      let baseTheme = document.getElementById('giscus-base-theme').value;
+      let altTheme = document.getElementById('giscus-alt-theme').value;
+      if (authorPrefersDark) {
+          [baseTheme, altTheme] = [altTheme, baseTheme];
+      }
+      return document.body.classList.contains('quarto-dark') ? altTheme : baseTheme;
+    };
+    const script = document.createElement("script");
+    script.src = "https://giscus.app/client.js";
+    script.async = true;
+    script.dataset.repo = "LucianoDeBenedictis/blog";
+    script.dataset.repoId = "R_kgDOQ9cC-w";
+    script.dataset.category = "Announcements";
+    script.dataset.categoryId = "DIC_kwDOQ9cC-84DCkDj";
+    script.dataset.mapping = "pathname";
+    script.dataset.reactionsEnabled = "1";
+    script.dataset.emitMetadata = "0";
+    script.dataset.inputPosition = "top";
+    script.dataset.theme = getTheme();
+    script.dataset.lang = "en";
+    script.crossOrigin = "anonymous";
+    // Append the script to the desired div instead of at the end of the body
+    document.getElementById("quarto-content").appendChild(script);
+  }
+  loadGiscus();
+</script>
+</div> <!-- /content -->
+
+
+
+
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/LucianoDeBenedictis/blog/edit/main/posts/raoq/index.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/LucianoDeBenedictis/blog/blob/main/posts/raoq/index.qmd" class="toc-action"><i class="bi empty"></i>View source</a></li><li><a href="https://github.com/LucianoDeBenedictis/blog/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>

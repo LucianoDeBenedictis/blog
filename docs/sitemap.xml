@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
+    <loc>https://lucianodebenedictis.github.io/blog/posts/raoq/index.html</loc>
+    <lastmod>2026-08-07T11:21:53.061Z</lastmod>
+  </url>
+  <url>
     <loc>https://lucianodebenedictis.github.io/blog/posts/gravity/index.html</loc>
-    <lastmod>2026-08-04T20:59:06.262Z</lastmod>
+    <lastmod>2026-08-07T09:37:07.048Z</lastmod>
   </url>
   <url>
     <loc>https://lucianodebenedictis.github.io/blog/resources.html</loc>
@@ -18,6 +22,10 @@
   </url>
   <url>
     <loc>https://lucianodebenedictis.github.io/blog/posts/starting/index.html</loc>
-    <lastmod>2026-08-03T10:07:23.605Z</lastmod>
+    <lastmod>2026-08-07T09:38:13.438Z</lastmod>
+  </url>
+  <url>
+    <loc>https://lucianodebenedictis.github.io/blog/posts/tidyecology/index.html</loc>
+    <lastmod>2026-08-07T11:21:40.605Z</lastmod>
   </url>
 </urlset>

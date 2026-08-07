@@ -4,6 +4,10 @@ date: 2026-08-04
 format: html
 df-print: kable
 bibliography: references.bib
+categories:
+  - stats
+  - brms
+  - R
 execute: 
   warning: false
 ---

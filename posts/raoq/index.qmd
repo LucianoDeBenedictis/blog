@@ -1,0 +1,490 @@
+---
+title: "Calculating Rao with R"
+date: 2026-08-07T12:01:00+00:00
+format: html
+bibliography: references.bib
+categories:
+  - ecology
+  - R
+  - traits
+execute: 
+  warning: false
+---
+
+C. R. Rao lived more than 100 years and has been one of the greatest mathematicians and statisticians of the 20th century. Ecologists mostly know him for his quadratic entropy, which probably isn't even one of [his greatest achievements](https://www.nature.com/articles/d41586-023-03200-5).
+
+Rao's Quadratic Entropy (@rao2010, also called DIVC, @rao1982) is one of the oldest and most popular indices of functional diversity. It's generically defined on probability distributions, but we often see what I like to call the multinomial form:
+
+$$Q = \sum_{i}^{N}\sum_{j}^{N}d_{ij}p_{i}p_{j}$$
+
+Call *i* and *j* two species out of *N*, *d* a distance between them, *p* their proportional abundances, and you have a way to calculate the average distance between two randomly drawn individuals (or more generally a weighted average distance).
+
+While this $\alpha$ diversity formula is well known, stopping there is also extremely reductive. Diversity partitioning across scales (something akin to $\beta$) has been there since the beginning, since the main goal always has been to develop a generalization of ANOVA. A unified theory tying this to other well known indices has always been there too, but today I won't focus more on the theory, but rather on software implementations. If you want to learn more about the theory, a lot of work has been done in the last 40 years, and a lot of articles published: you can find an overview in @debenedictis2026 and its [Appendix C](https://ars.els-cdn.com/content/image/1-s2.0-S1470160X26000841-mmc3.pdf).
+
+## Setup
+
+Just the bare minimum today.
+
+```{r}
+library(conflicted)
+library(tidyverse)
+```
+
+## Rao functional diversity
+
+The example data is a snippet from the [data](https://zenodo.org/records/17311232) of @debenedictis2026. This is a peculiar case, because it comes from a 1000-unit looping transect which has been resampled with overlap at several scales, so there are many sampling units, but each has few records because they come from beech forest understory. This is just one scale of one transect. For each sampling unit X, row represent observations of a species. When the sampling units are aggregates as in this case, these can be used to calculate frequencies.
+
+::: callout-note
+Want to know how we got here? Check out the [twin post](/posts/tidyecology/index.qmd)!
+:::
+
+```{r}
+# load the preprocessed data
+transect <- read_rds("transect.rds")
+
+transect <- transect |> 
+  #summarise records into species frequencies
+  count(X, species) |> 
+  # convert frequencies to proportions
+  mutate(prop = n / sum(n), .by = X) |> 
+  select(!n)
+
+# convert data to a more traditional matrix
+transect_mat <- transect |> 
+  pivot_wider(names_from = species, 
+              values_from = prop,
+              values_fill = 0) |> 
+  column_to_rownames("X") |> 
+  as.matrix()
+
+transect
+
+# I have already done the work of gathering traits and calculate a distance matrix
+distances <- read_rds("dist.rds")
+
+distances[1:3, 1:3]
+```
+
+## Custom function
+
+As the first solution, I wanted to share a function that it's so simple it almost feels like it shouldn't work. The actual calculation is just one line of matrix algebra, the part before is just to get `props` and `dist` to agree. In practice, I'd always specify `species`, because this also ensures proportions and distances are in the same order (assuming the proportions come from a dataframe with a matching species column). Credit to this [gist](https://gist.github.com/jslefche/09756ff84afc7b6a82ea0582e663d098) by Jon Lefcheck, even if the idea floats around the internet.
+
+```{r}
+raoq <- function(props, dist, species = NULL){
+  #subset species in the distance matrix if necessary
+  if(!is.null(species)){
+    dist <- dist[species, species]
+  }
+  
+  c(crossprod(props, dist %*% props))
+}
+```
+
+Rao sums across all species pairs the distance between *i* and *j* multiplied by the proportions of *i* and *j* to calculate an average distance. Our distance matrix already has all species pairs (optionally some that are not present, which can be subset or assigned 0 proportions), so there's no need to loop: we just apply the matrix cross-product twice.
+
+If you want, you could add a little check at the beginning if you want to take the species from the names of `props`, if present, but I prefer to be explicit with this sort of things.
+
+```{r}
+#| eval: false
+
+if(is.null(species) && !is.null(names(props))) species <- names(props)
+```
+
+### Matrix cross products?
+
+To get an intuition for what the cross-product does, the first pass takes the matrix, multiplies each column by the respective value in the vector, then sums the columns together.
+
+```{r}
+mat <- matrix(1:9, ncol = 3, byrow = T)
+ab <- 1:3
+
+mat
+
+mat %*% ab
+```
+
+The second pass takes the resulting column matrix, transposes it to a row and repeats the process (so the row of values gets summed and you end up with a single value). The `c()` is just so that it's not a 1 $\times$ 1 matrix.
+
+```{r}
+c(crossprod(ab, mat %*% ab))
+
+#same as
+sum(mat %*% ab * ab)
+```
+
+You can double check the result with a less compact and probably slower version:
+
+```{r}
+# multiply each row of mat by ab
+step1 <- sweep(mat, 2, ab, "*") |> 
+  # sum columns together
+  rowSums()
+
+sum(step1 * ab)
+```
+
+Back to the example. One way we can iterate `raoq` across multiple samples is by nesting and mapping:
+
+```{r}
+transect_nested <- transect |> 
+  # nest, one tibble for each X
+  nest(.by = X)
+
+# calculate Rao!
+transect_nested <- transect_nested |> 
+  mutate(Rao = map_dbl(data, \(x) raoq(x$prop, distances, x$species)))
+
+transect_nested
+```
+
+## FD, ade4, and adiv
+
+How would one do this with usual packages? `FD::dbFD()` can calculate Rao, alongside many other things which can't all be disabled (and take time to compute).
+
+```{r}
+# distance matrix must be dist and not contain extra species
+dist_dbfd <- distances[colnames(transect_mat), colnames(transect_mat)] |> 
+  as.dist()
+
+rao_dbfd <- FD::dbFD(
+  #first argument could be either traits or a dist object
+  x = dist_dbfd,
+  #abundance matrix
+  a = transect_mat,
+  w.abun = T,
+  calc.FRic = F,
+  calc.FDiv = F,
+  calc.CWM = F,
+  messages = F) |> 
+  #just Rao, please
+  pluck("RaoQ")
+
+```
+
+Under the hood, it calls `ade4::divc()`, which is a second option, just with a different data structure.
+
+```{r}
+rao_ade4 <- ade4::divc(
+  #abundances should be a dataframe with species as ROWS
+  as.data.frame(t(transect_mat)),
+  #dist object above
+  dist_dbfd,
+  #the default for scale is F, but since it is undocumented better be explicit
+  scale = F)
+```
+
+Unsurprisingly, the two give the same result, but it is not the same as `raoq()`. Why?
+
+```{r}
+all.equal(unname(rao_dbfd), rao_ade4$diversity)
+
+all.equal(rao_ade4$diversity, transect_nested$Rao)
+```
+
+Inspecting the source, `divc()` does the same cross product trick, but column by column so it's less efficient. Then, despite referencing @rao1982, it performs a slightly different calculation: the distance matrix is squared, and the column result is divided by two and divided again by the squared sum of abundances. Putting aside the squared sum thing (that part is just scaling the raw abundances/presences/frequencies into proportions after the fact), this is actually the "Euclidean diversity coefficient" of @champely2002! The reasoning behind it is that if distance used is the Euclidean distance, this equals the variance of the trait distribution [see Appendix C of my article](https://ars.els-cdn.com/content/image/1-s2.0-S1470160X26000841-mmc3.pdf). This has been observed by @debello2016 too.
+
+The scaling part is not an issue, the documentation does say "abundance, presence-absence or frequencies as entries", and if you feed proportions it's harmless, but `divc()` does the distance transformation behind the scenes, only checking if the distance matrix is Euclidean, even if it's not **the** Euclidean. If we take the guts of `divc`, remove some input checks, and change one line to remove the $\Delta = \frac{d^{2}}{2}$ part to go back to the original Rao formula, we get something like this:
+
+```{r}
+fakedivc <- function (df, dis = NULL, scale = FALSE) 
+{
+  div <- as.data.frame(rep(0, ncol(df)))
+  names(div) <- "diversity"
+  rownames(div) <- names(df)
+  for (i in 1:ncol(df)) {
+    if (sum(df[, i]) < 1e-16) 
+      div[i, ] <- 0
+    else div[i, ] <- (t(df[, i]) %*% (as.matrix(dis)) %*% df[, i])/(sum(df[, i])^2)
+  }
+  if (scale == TRUE) {
+    divmax <- divcmax(dis)$value
+    div <- div/divmax
+  }
+  return(div)
+}
+```
+
+And, sure enough, things match now.
+
+```{r}
+rao_ade4_fake <- fakedivc(as.data.frame(t(transect_mat)),
+                          dist_dbfd,
+                          scale = F)
+
+all.equal(rao_ade4_fake$diversity, transect_nested$Rao)
+```
+
+`adiv::QE()` is basically the same as these two, down to the source code, but it does have the option to choose between quadratic entropy and Euclidean diversity index:
+
+```{r}
+rao_adiv <- adiv::QE(transect_mat,
+                     dist_dbfd,
+                     "QE") |> 
+  pull()
+
+all.equal(rao_adiv, transect_nested$Rao)
+```
+
+## fundiversity
+
+I agree, diversity is fun. This package seems cool, and the function `fd_raoq()` too. It can accept either traits or distances, has a nice helper to subset it and the community if the species don't match, and uses the cross product under the hood. The results are the same as with `raoq()`:
+
+```{r}
+rao_fun <- fundiversity::fd_raoq(sp_com = transect_mat,
+                                 dist_matrix = distances) |> 
+  pluck("Q")
+  
+all.equal(rao_fun, transect_nested$Rao)
+```
+
+## mFD
+
+This function is one of those that calculates generalizations of functional diversity. Being based on Hill numbers, what it returns is actually the equivalent number $E = \frac{1}{1-Q}$ but you only notice this if you pay attention to the cited literature and to the phrase "is equivalent to", which doesn't mean "equals". Once we retransform the values, things add up.
+
+::: callout-caution
+While this function supports both matrices and `dist` objects, I got different results using `dist_dbfd` from above. The reason is that the distance matrix is automatically scaled, whether you want it or not, and `dist_dbfd` is a subset of the full matrix. This is something to keep in mind, especially if you try to compare samples calculated with different distance matrices.
+:::
+
+```{r}
+rao_mfd <- mFD::alpha.fd.hill(transect_mat,
+                              distances,
+                              q = 2,
+                              tau = "max",
+                              details_returned = F)
+
+rao_mfd <- 1 - 1 / rao_mfd[, 1]
+
+all.equal(unname(rao_mfd), transect_nested$Rao)
+```
+
+## hillR
+
+Another function that calculates Hill number generalizations of functional diversity. We can calculate Rao by setting `q = 2`. In theory, you can provide either traits, or a "symmetric distance matrix" with `traits_as_is`: this is a lie, it wants a `dist` instead. Works fine otherwise. Unlike `mFD()`, it provides both Rao and functional Hill numbers, so you can pick your favourite.
+
+```{r}
+rao_hillr <- hillR::hill_func(transect_mat, dist_dbfd, traits_as_is = T, q = 2, fdis = F)["Q", ]
+
+all.equal(unname(rao_hillr), transect_nested$Rao)
+```
+
+## Melodic
+
+What if we look outside of CRAN? @debello2016 provide an R function called `melodic()` It's a bit hidden inside the supplementary materials, and I had to tweak the checks in the first two lines because something must have changed with R in the last ten years: matrices seem to always have both class `"matrix"` and `"array"`, so the check gives an error. I changed it to use `inherits()`.
+
+```{r}
+##MEan DIssimilarity Components##
+#samp:  community matrix; sites in lines, species in columns
+#dis:   dissimilarity matrix
+#type:  "both" for results with abundances weighted and non-weighted
+#       "abundance" for results with abundances weighted
+#       "presence" for results with abundances non-weighted
+  
+melodic <- function(samp,dis,type="both"){
+  if(!inherits(samp, "matrix")){samp <- as.matrix(samp)}
+  if(!inherits(samp, "matrix")){dis <- as.matrix(dis)}
+  if(is.null(colnames(samp)) | is.null(colnames(dis)) ){
+    stop("Both samp and dis must have colnames.\n")
+  }
+  N<-dim(samp)[1]
+	melodic<-list()
+	if (type=="both"){
+	    melodic$abundance<-list()
+	    melodic$abundance$mpd<-melodic$abundance$rao<-melodic$abundance$simpson<-numeric(N)
+	    melodic$presence<-list()
+	    melodic$presence$mpd<-melodic$presence$rao<-melodic$presence$simpson<-numeric(N)
+  	}
+	if (type=="abundance"){ 
+    	melodic$abundance<-list()
+	    melodic$abundance$mpd<-melodic$abundance$rao<-melodic$abundance$simpson<-numeric(N)
+  	}
+	if (type=="presence"){ 
+    	melodic$presence<-list()
+	    melodic$presence$mpd<-melodic$presence$rao<-melodic$presence$simpson<-numeric(N)
+  	}
+	for (i in 1:N){
+    	sppInSample<-names(samp[i,samp[i, ]>0])
+	  	melodic$richness[i]<-rowSums(samp>0)[i]
+	  	if (length(sppInSample)>1){
+      		sample.dis<-dis[sppInSample,sppInSample]
+			abund.w<-numeric(length(sppInSample))
+			if (type=="both" | type=="abundance"){
+  				abund.w <- samp[i , sppInSample] / sum(samp[i , sppInSample])
+		        sample.weights <- outer(abund.w , abund.w)
+		        melodic$abundance$mpd[i] <- weighted.mean(sample.dis[lower.tri(sample.dis)] , sample.weights[lower.tri(sample.weights)])
+			    melodic$abundance$rao[i] <- sum(sample.weights * sample.dis)
+		    	melodic$abundance$simpson[i] <- sum(2*sample.weights[lower.tri(sample.weights)])
+			} 	
+    		if (type=="both" | type=="presence"){
+		    	abund.nw <- rep(1 , length(sppInSample)) / length(sppInSample)
+		        sample.weights <- outer(abund.nw , abund.nw)
+		        melodic$presence$mpd[i] <- weighted.mean(sample.dis[lower.tri(sample.dis)] , sample.weights[lower.tri(sample.weights)])
+		        melodic$presence$rao[i] <- sum(sample.weights * sample.dis)
+		        melodic$presence$simpson[i] <- sum(2*sample.weights[lower.tri(sample.weights)])
+			}	
+		}	else {
+			if (type=="both" | type=="abundance"){
+		        melodic$abundance$mpd[i] <- NA
+		        melodic$abundance$rao[i] <- melodic$abundance$simpson[i] <-0
+	    	}
+      		if (type=="both" | type=="presence"){
+        		melodic$presence$mpd[i] <- NA
+		        melodic$presence$rao[i] <- melodic$presence$simpson[i] <-0
+			}
+    	}
+    }  	
+	out<-melodic
+	return(out)	
+}
+```
+
+This function is alright: a bit more complex than `raoq()` and it doesn't use the cool cross products, opting for a loop instead. You might find the extra output it gives useful. If we focus on Rao, it works as expected:
+
+```{r}
+rao_mel <- melodic(transect_mat, distances, "abundance") |> 
+  pluck("abundance", "rao")
+
+all.equal(rao_mel, transect_nested$Rao)
+```
+
+## Performance comparison
+
+The authors of `fundiversity` seem to care about performance, since they did an overview of available packages and benchmarked them together. One thing I noticed about `fd_raoq()` is that it calculates Rao even with pairs of abundance vectors from different communities. That could be useful as a first step to calculate the original Rao dissimilarity, but here they are just discarded. How will it perform against the others?
+
+```{r}
+dist_subset <- as.matrix(dist_dbfd)
+
+#suppressMessages is so that FD would shut up
+bench <- bench::mark(
+  raoq_map = map_dbl(transect_nested$data, \(x) raoq(x$prop, distances, x$species)),
+  raoq_mat = apply(transect_mat, 1, function(x) raoq(x, dist_subset)),
+  FD = FD::dbFD(x = dist_dbfd,
+           a = transect_mat,
+           w.abun = T,
+           calc.FRic = F,
+           calc.FDiv = F,
+           calc.CWM = F,
+           messages = F),
+  ade4 = ade4::divc(as.data.frame(t(transect_mat)),
+             dist_dbfd,
+             scale = F),
+  adiv = adiv::QE(transect_mat, dist_dbfd, "QE"),
+  fundiversity = fundiversity::fd_raoq(sp_com = transect_mat, dist_matrix = distances),
+  mFD = mFD::alpha.fd.hill(transect_mat, distances, q = 2, tau = "max", details_returned = F),
+  hillR = hillR::hill_func(transect_mat, dist_dbfd, traits_as_is = T, q = 2, fdis = F),
+  melodic = melodic(transect_mat, distances, "abundance"),
+  check = F) |> 
+  arrange(median)
+
+bench
+```
+
+`fd_raoq()` still wins, with `raoq()` close behind! This is the power of primitve matrix operations: even when computing N^2^ indices instead of N, this is still faster if you can do it with matrix products instead of row by row. This holds true even when the distance matrix is subset beforehand, instead of each iteration (raoq_map).
+
+Learning from this and taking up the challenge, can we make `raoq()` *fast*? Since the trick is to use only matrix operations, we turn to the community matrix, instead of iterating over single vectors of proportions. This has the advantage that we don't need to have a separate `species` argument, we can just use column names as everyone else. Turns out we don't need to do the big N^2^ cross product, we can do something similar to what I did when [explaining the double cross product](#matrix-cross-products) by just doing multiplication followed by summing columns. We can have our cake and eat it too, or as they say in Italy, you can have a full cask and a drunk wife (I'm not a fan of cake, wine, or sexist sayings either):
+
+```{r}
+raoq_fast <- function(com, dist){
+  #subset species in the distance matrix if necessary
+  species <- colnames(com)
+  dist <- dist[species, species]
+  #it's called rowSums because it sums together columns by row
+  rowSums((com %*% dist) * com)
+}
+
+rao_raoqfast <- raoq_fast(transect_mat, distances)
+
+all.equal(unname(rao_raoqfast), rao_fun)
+
+rebench <- bench::mark(
+  raoq_fast = unname(raoq_fast(transect_mat, distances)),
+  fd_raoq = fundiversity::fd_raoq(sp_com = transect_mat, dist_matrix = distances),
+  check = F) |> 
+  arrange(median)
+
+rebench
+```
+
+Well well! About 40 to 50 times faster than `fd_raoq()`!
+
+## Conclusions
+
+In practice, the speed differences are irrelevant, except maybe for `dbFD`(because it calculates a bunch of other things). Since `FD`, `ade4` and `adiv` calculate their own version of Rao, I would use either my functions, `adiv`, `fundiversity`, or `melodic`. If you're into Hill numbers, the `mFD` and `hillR` packages are interesting, but you can always transform Rao yourself if you stick with *q* = 2. Between my two functions, I would probably still use the slower one, because iterating explicitly gives me more control over the output format. Another thing of note is whether the functions require you to subset the distance matrix beforehand or they take care of it themselves, and whether they want a matrix or a `dist`. I consider functions that can take a matrix and can subset or rearrange it more robust, and those would be `raoq()`(either one), `fd_raoq()`, `alpha.fd.hill()`, and `melodic()`.
+
+I hope this is useful to someone. The first thought when having to calculate an index might be "oh, I'll just grab a package that does it", but we have seen how things are not as simple as that in this case. This is not meant to be a comprehensive overview, but to include many popular solutions as well as providing some interesting alternatives.
+
+## Extra: decomposition
+
+I mentioned at the beginning that the $\alpha$ formula is just a small part of what you can do, and you can go further with a nested decomposition in the style of $\alpha,\beta,\gamma$. 
+
+To give you a taste of that, I'll share a function I made for @debenedictis2026 which calculates a bunch of Rao-based indices. Compared to the original, I changed the input format to the classical community matrix, `raoq()` with the updated version with name matching (instead of factors, *ugh*), and the internal data format to the convention "species on columns, samples on rows". The indices are described in @debello2010 and @pavoine2024.
+
+```{r}
+qdecomp <- function(data, distances){
+  #alpha Q
+  alpha <- apply(data, 1, function(x) raoq(x, distances, names(x))) |>
+    mean()
+  #regional relative abundances as mean of local ab.
+  #this gives equal weight to each community
+  P_i <- colMeans(data)
+  #gamma Q
+  gamma <- raoq(P_i, distances, names(P_i))
+  #additive beta
+  beta_add <- gamma - alpha
+  #additive beta normalized by gamma
+  beta_rel <- beta_add / gamma
+  #equivalent alpha
+  E_alpha <- 1/(1-alpha)
+  #equivalent gamma
+  E_gamma <- 1/(1-gamma)
+  #multiplicative eq. beta
+  E_beta_mult <- E_gamma / E_alpha
+  #additive eq. beta
+  E_beta_add <- E_gamma - E_alpha
+  #proportional additive beta, normalized on sample n
+  E_beta_add_prop_norm <- (E_beta_add / E_gamma) / (1 - 1 / nrow(data))
+  #matrix of taxonomic distances (0/1)
+  taxon <- distances
+  taxon[,] <- 1
+  diag(taxon) <- 0
+  #taxonomic alpha
+  alpha_sp <- apply(data, 1, function(x) raoq(x, taxon, names(x))) |> 
+    mean()
+  #taxonomic gamma
+  gamma_sp <- raoq(P_i, taxon, names(P_i))
+  #additive tax. beta
+  beta_sp_add <- gamma_sp - alpha_sp
+  #normalized tax. beta
+  beta_sp_rel <- beta_sp_add / gamma_sp
+  #equivalent tax. alpha
+  E_alpha_sp <- 1/(1-alpha_sp)
+  #equivalent tax. gamma
+  E_gamma_sp <- 1/(1-gamma_sp)
+  #equivalent tax. beta
+  E_beta_sp <- E_gamma_sp / E_alpha_sp
+  #beta Q clustering
+  clustering <- beta_rel / beta_sp_rel
+  #gamma Q uniqueness
+  uniqueness <- gamma / gamma_sp
+  #gamma E uniqueness
+  U_gamma_star <- E_gamma / E_gamma_sp
+  #alpha E redundancy, inverse of Ualpha_star
+  redundancy_a <- E_alpha_sp / E_alpha
+  
+  output <- data.frame(alpha, gamma, beta_add, beta_rel,
+                       E_alpha, E_gamma, E_beta_mult, E_beta_add,
+                       E_beta_add_prop_norm, clustering, uniqueness,
+                       alpha_sp, gamma_sp, U_gamma_star, redundancy_a,
+                       beta_sp_add, E_alpha_sp, E_gamma_sp, E_beta_sp)
+  return(output)
+}
+```
+
+How does that look, applied to the data?
+
+```{r}
+qdecomp(transect_mat, distances) |> 
+  glimpse()
+```
+
+As far as I know, most of the indices above have not yet been implemented in a package. The alternative would be following the [script](https://doi.org/10.6084/m9.figshare.25342990) of @pavoine2024.
+

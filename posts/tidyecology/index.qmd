@@ -1,0 +1,179 @@
+---
+title: "Tidy ecology with R"
+date: 2026-08-07T12:00:00+00:00
+format: html
+bibliography: references.bib
+categories:
+  - ecology
+  - R
+execute: 
+  warning: false
+---
+
+::: {.callout-note}
+This post and [its twin](/posts/raoq/index.qmd) were conceived together. In my mind, the two topics are tightly linked, but a tangent about different software implementations of a diversity index grew so large that it deserved its own post. If you're interested in both, you can read that one after this.
+:::
+
+There is a tradition in ecology to represent community data in a "community matrix" [@legendre2012]. This what we can call a “wide” format, with species on columns and samples on rows. I prefer this convention to having them the other way around, since we can treat species as “variables” and samples as “observations”.
+
+The popular package [vegan](https://cran.r-project.org/web/packages/vegan/index.html) interprets this literally as matrix objects. Matrices in R have nice uses, for example if you want to exploit matrix algebra for the fastest calculations, but they are raw and ugly to print and view, definitely not what you would want for general data analysis. The package [tidyvegan](https://github.com/pefrens/tidyvegan/tree/master) seems to share this sentiment, adapting the most useful functions in the package to the use of tibbles and the pipe-friendly "data as first argument" convention.
+
+The thing is, community data is often awfully sparse. Wouldn’t it be nice to work in a long format? That has often been my preference, so I'll show you how to reconcile the two worlds without too much pain. *Spoiler:* this mostly involves the use of `pivot_wider()` and `pivot_longer()`, but I think the practical examples and some added details make this worth sharing.
+
+## Setup
+
+Just loading some packages.
+
+```{r}
+library(conflicted)
+library(tidyverse)
+library(vegan)
+```
+
+## Example 1: pairwise dissimilarities
+
+The following example uses a small, cleaned-up subset of the [data](https://zenodo.org/records/18710555) in @cervellini2026. Several observers have recorded species cover in the same sampling unit (this is just one sampling unit and one exercise):
+
+```{r}
+training <- read_rds("tidyveg_ex1.rds")
+
+training
+```
+
+This long tibble is nice: you can easily calculate observer species richness, filter out rows, transform the percent cover; it's not the format `vegdist()` wants to see though. You could just pivot the tibble and feed it to the function, this actually works because `vegdist()` silently converts it to a matrix:
+
+```{r}
+plain1 <- training |> 
+  pivot_wider(names_from = species, values_from = cover, values_fill = 0) |> 
+  column_to_rownames("observer") |> 
+  # default Bray-Curtis (Steinhaus, Motyka, Odum, percentage difference or however you want to call it) 
+  vegdist()
+
+plain1
+```
+
+There are some issues with this. First of all, `vegan` really likes to use row and column names to identify the pairs. There's not much choice with matrices, but maybe in the original data you have a separate identifier column. If you want that to be transferred, you need to transform it into row names. Tibbles hate row names so much that as soon as I call that second function the data stops being a tibble and becomes a plain dataframe. The documentation in `?tibble::rownames` explains this stance convincingly: row names are just a character variable, but much more volatile (you can lose it from one operation to the next) and with a special treatment. If you want a character variable, make a column for it.
+
+The second issue is with the output format. I really think the `dist` class is an ugly and error-prone convention started by base R. What you get from the above looks like a matrix (more specifically, the lower triangle), but is in fact a weird dressed-up vector. The same is true even if you set `diag = TRUE` and `upper = TRUE` in `vegdist()`, even if the printed output looks identical to a matrix.
+
+```{r}
+plain2 <- training |> 
+  pivot_wider(names_from = species, values_from = cover, values_fill = 0) |> 
+  column_to_rownames("observer") |> 
+  vegdist(diag = T, upper = T)
+
+plain2
+```
+
+This gets especially confusing when you try to do normal matrix operations like subsetting, since the underlying object is one-dimensional:
+
+```{r}
+try(plain2[1, 1])
+```
+
+I think it's best to call `as.matrix()` right away and work with the full symmetrical matrix, then handle it as needed.
+
+Finally, maybe I would like to let `stats` and `vegan` enjoy their matrices and look at the output in a tibble instead. Let's say we want to use those distance values as data in a model, as we did in the paper above. To do all this behind the scenes, I made two helper functions, which I have now adapted for more general use:
+
+```{r}
+vegan_cook <- function(x, species_col = "species", value_col = "cover", sample_name = NULL){
+  
+  if(is.null(sample_name)) sample_name <- setdiff(names(x), c(species_col, value_col))
+  if(length(sample_name) > 1) stop("Please provide a unique identifier column for samples")
+  
+  x |> 
+    pivot_wider(names_from = all_of(species_col), values_from = all_of(value_col), values_fill = 0) |> 
+    column_to_rownames(sample_name) |> 
+    as.matrix()
+}
+
+tidyvegdist <- function(x, sample_names = "sample", diag = F, tri = F, ...){
+  
+  if(length(sample_names) == 1) sample_names <- str_c(sample_names, 1:2, sep = "_")
+  
+  vegdist(x, ...) |> 
+    as.matrix() |> 
+    (\(m) {if (tri) m[upper.tri(m, diag = F)] <- NA; m})() |> 
+    (\(m) {if (!diag) diag(m) <- NA; m})() |> 
+    as_tibble(rownames = sample_names[1]) |> 
+    pivot_longer(!all_of(sample_names[1]), names_to = sample_names[2]) |> 
+    drop_na()
+}
+```
+
+`vegan_cook()` handles the forward transformation into a `vegan` matrix. You can specify the names of the columns to pivot from with `species_col` and `value_col`. The row (sample) name columns is gathered automatically from the remaining column, or can be specified manually. `tidyvegdist()` calls `vegdist()` and returns a long tibble. You can choose how to call the columns with the pair names, either with an atomic string, which gets suffixes, or with a character vector. It defaults to `"sample"`; you can choose to include the diagonal values (usually 0) with `diag`, or to get a triangular matrix instead of the full symmetric matrix with `tri`; finally, you can pass other arguments to `vegdist()`, such as `method`.
+
+```{r}
+training |> 
+  vegan_cook() |>
+  tidyvegdist()
+```
+
+## Example 2: transect data
+
+The second example is a snippet from the [data](https://zenodo.org/records/17311232) of @debenedictis2026. This is a peculiar case, because it comes from a 1000-unit looping transect which has been resampled with overlap at several scales, so there are many sampling units, but each has few records because they come from beech forest understory. This is just one scale of one transect. For each sampling unit X, row represent observations of a species. When the sampling units are aggregates as in this case, these can be used to calculate frequencies.
+
+```{r}
+transect <- read_rds("tidyveg_ex2.rds")
+
+transect
+```
+
+There are `{r} nrow(transect)` observations, and so rows. What would happen if we had this data in a wide format?
+
+```{r}
+too_wide <- transect |> 
+  mutate(presence = T) |> 
+  pivot_wider(names_from = species, values_from = presence, values_fn = length)
+
+glimpse(too_wide)
+```
+
+I warned you the data were sparse! Out of `{r} nrow(too_wide) * (ncol(too_wide) - 1)` values, `{r} sum(is.na(too_wide))` are `NA`. And we're lucky because only the `{r} ncol(too_wide) - 1` species recorded in this transect are listed.
+
+And that's not even fair to the long format, because this has already aggregated frequency counts in the rows. We can do the same with the long tibble:
+
+```{r}
+transect <- transect |> 
+  count(X, species)
+
+transect
+```
+
+Aside from this cosmetic difference, what can we do with the long format? We can join some traits or other information for example, and keep it neatly along the records.
+
+```{r}
+traits <- read_rds("traits.rds")
+
+transect |> 
+  left_join(traits)
+```
+
+Or we can easily convert frequencies to proportions:
+
+```{r}
+transect |> 
+  mutate(prop = n / sum(n), .by = X)
+```
+
+How would you do that with the wide format? Well, for the traits I'm not sure where I would fit them, but for the proportions you need a rowwise operation, which isn't usually as easy:
+
+```{r}
+too_wide <- too_wide |> 
+  # you can avoid this step by using values_fill in pivot_wider, but I wanted to count the NAs
+  mutate(across(everything(), \(x) replace_na(x, 0)))
+
+# rowwise is usually a sign that you're doing something wrong. Also, this is slow
+too_wide |> 
+  rowwise() |> 
+  mutate(across(!X, \(x) x / sum(c_across(!X))))
+
+# since we're doing this, might as well give up and convert to matrix
+too_wide |> 
+  column_to_rownames("X") |> 
+  as.matrix() |> 
+  proportions(margin = 1) |> 
+  head()
+```
+
+Or we could calculate [Rao's quadratic entropy](/posts/raoq/index.qmd)!

@@ -1,7 +1,7 @@
 author: "Luciano L.M. De Benedictis"
 title-block-banner: true
 toc-location: left
-date-format: iso
+df-print: tibble
 
 comments: 
   giscus: 
