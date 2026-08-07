@@ -4,14 +4,11 @@ about:
   id: hero-heading
   template: jolla
   links:
-    - icon: journal-text
-      text: Scholar
+    - text: "{{< fa brands google-scholar >}} Scholar"
       href: https://scholar.google.com/citations?user=YdmDsZMAAAAJ&hl
-    - icon: person-circle
-      text: ORCiD
+    - text: "{{< fa brands orcid >}} ORCiD"
       href: https://orcid.org/0009-0001-5014-4526
-    - icon: github
-      text: Github
+    - text: "{{< fa brands github >}} Github"
       href: https://github.com/LucianoDeBenedictis
 
 ---

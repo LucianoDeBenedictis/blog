@@ -24,6 +24,7 @@ website:
   repo-actions: [edit, source, issue]
   open-graph: true
   draft-mode: unlinked
+  page-footer: <span>{{< fa brands creative-commons >}} 2026 Luciano L.M. De Benedictis. All content licensed under [{{< fa brands creative-commons-by >}} Creative Commons CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)</span>
 
 format:
   html:
