@@ -2,19 +2,23 @@
 title: "Resources"
 ---
 
+This page is what was called a blogroll in the old days. Some of these resources aren't about ecology, but something I particularly enjoy is when methods create unexpected bridges across disciplines. We face similar problems, just with different names and objects.
+
 ### Blogs and personal sites
 
-- [The 100% CI](https://www.the100.ci/)
+- [The 100% CI](https://www.the100.ci/) for many good posts about causal inference and meta-science
 
-- [Statistical Modeling, Causal Inference, and Social Science](https://statmodeling.stat.columbia.edu/)
+- [Statistical Modeling, Causal Inference, and Social Science](https://statmodeling.stat.columbia.edu/): most of the posts are by Andrew Gelman, a big name in Bayesian statistics. He writes about anything he likes to, not just stats. I also enjoy the posts by other authors, especially by the ecologist Lizzie Wolkovich
 
 - [Solomon Kurz](https://solomonkurz.netlify.app/blog/). Be sure to check out the [book translations as well](https://solomonkurz.netlify.app/book/)!
 
 - [Cecilia Baldoni](https://cecibaldoni.github.io/), who helped me start this blog and has the most beautiful Quarto website
 
-- [Ruben Arslan](https://rubenarslan.github.io/blog.html)
+- [Ruben Arslan](https://rubenarslan.github.io/blog.html) for great posts about Bayesian statistics, R, and science
 
-- [Andrew Heiss](https://www.andrewheiss.com/blog/)
+- [Andrew Heiss](https://www.andrewheiss.com/blog/): I didn't expect a political scientist to give me so many nice examples of Bayesian models in R
+
+- [Danielle Navarro](https://blog.djnavarro.net/) is very popular in the R community, and for good reason. Software, stats, and much more
 
 ### Books
 
